@@ -81,8 +81,12 @@ class RideDetailScreen extends StatelessWidget {
                   _financialRow('Platform Komisyonu (%12)', -ride.commission, isNeg: true),
                   _financialRow('Kampanya Katkısı (Platform)', 0, note: 'Yok'),
                   _financialRow('Kampanya Katkısı (Sürücü)', 0, note: 'Yok'),
-                  _financialRow('Vergi / Yasal Kesinti', 0, note: 'Mevzuata göre'),
+                  _financialRow('Bahtiyar Kooperatif Stopaj (%2)', 0, note: 'Muaf'),
+                  _financialRow('E-Arşiv KDV (%20)', 0, note: 'Beyan Edildi'),
                   _financialRow('İptal / İade Düzeltmesi', 0, note: 'Yok'),
+                  _financialRow('Hukuk Fonu (%4)', -ride.legalFund, isNeg: true),
+                  _financialRow('Denge Fonu (%3)', -ride.balanceFund, isNeg: true),
+                  _financialRow('KONUM Payı (%5)', -ride.platformShare, isNeg: true),
                   const Divider(color: Color(0xFFFFD700), height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -129,6 +133,25 @@ class RideDetailScreen extends StatelessWidget {
               _actionButton(Icons.description, 'Yolculuk sözleşmesi özeti', () => Get.snackbar("Bilgi", "Sözleşme özeti henüz entegre edilmedi.")),
               _actionButton(Icons.map, 'Rota kayıt özeti', () => Get.snackbar("Bilgi", "Rota kaydı henüz entegre edilmedi.")),
               _actionButton(Icons.support_agent, 'Destek talebi oluştur', () => Get.snackbar("Bilgi", "Destek sistemi henüz entegre edilmedi.")),
+              if (ride.legalHash != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.black26,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFFFD700).withValues(alpha: 0.2)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('DİJİTAL MÜHÜR (LEGAL HASH)', style: TextStyle(color: Color(0xFFFFD700), fontSize: 9, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      Text(ride.legalHash!, style: const TextStyle(color: Colors.grey, fontSize: 8, fontFamily: 'monospace')),
+                    ],
+                  ),
+                ),
+              ]
             ]),
             const SizedBox(height: 30),
           ],

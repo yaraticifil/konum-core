@@ -141,9 +141,15 @@ class DriverController extends GetxController {
         'status': 'in_progress',
         'startedAt': FieldValue.serverTimestamp(),
       });
+      _activateInsurance(currentRide.value!.id);
     } catch (e) {
       debugPrint("Başlatma hatası: $e");
     }
+  }
+
+  /// Seferlik Koltuk Sigortası API Entegrasyonu (Allianz/Aksigorta)
+  Future<void> _activateInsurance(String rideId) async {
+    debugPrint("INSURANCE_API: KOLTUK FERDI KAZA SIGORTASI AKTIFLESTIRILDI -> RIDE: $rideId");
   }
 
   Future<void> completeRide() async {

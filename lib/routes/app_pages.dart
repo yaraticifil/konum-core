@@ -11,10 +11,11 @@ import '../bindings/auth_binding.dart';
 import '../bindings/driver_binding.dart';
 import '../bindings/admin_binding.dart';
 import '../bindings/passenger_binding.dart';
-import '../middlewares/auth_guard.dart'; // [NEW] Güvenlik duvarı eklendi
+import '../middlewares/auth_guard.dart';
 import '../views/driver/digital_id_screen.dart';
 import '../views/driver/legal_contract_screen.dart';
 import '../views/driver/penalty_report_screen.dart';
+import '../views/driver/legal_defense_screen.dart';
 import '../views/passenger/passenger_home_screen.dart';
 import '../views/passenger/ride_history_screen.dart';
 import '../views/driver/fair_earnings_screen.dart';
@@ -123,7 +124,11 @@ class AppPages {
       page: () => const PenaltyReportScreen(),
       binding: DriverBinding(),
     ),
-    // ─── YOLCU EKRANLARI ───
+    GetPage(
+      name: '/legal-defense',
+      page: () => const LegalDefenseScreen(),
+      binding: DriverBinding(),
+    ),
     GetPage(
       name: '/passenger-home',
       page: () => const PassengerHomeScreen(),
@@ -135,7 +140,6 @@ class AppPages {
       page: () => const RideHistoryScreen(),
       binding: PassengerBinding(),
     ),
-    // ─── SÜRÜCÜ ADİL KAZANÇ ───
     GetPage(
       name: '/fair-earnings',
       page: () => const FairEarningsScreen(),
@@ -146,7 +150,6 @@ class AppPages {
       page: () => const RideDetailScreen(),
       binding: DriverBinding(),
     ),
-    // ─── HUKUKİ / BİLGİLENDİRME SAYFALARI ───
     GetPage(
       name: '/privacy-policy',
       page: () => const PrivacyPolicyPage(),

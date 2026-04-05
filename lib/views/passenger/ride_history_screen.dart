@@ -153,6 +153,7 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
             children: [
               _miniInfo('Mesafe', '${ride.distanceKm.toStringAsFixed(1)} km'),
               _miniInfo('Fiyat', '₺${ride.grossTotal.toStringAsFixed(0)}'),
+              if (ride.legalHash != null) _miniInfo('Mühür', ride.legalHash!.substring(0, 8) + "...")
             ],
           ),
         ],

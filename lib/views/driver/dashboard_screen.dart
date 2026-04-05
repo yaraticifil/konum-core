@@ -123,6 +123,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(width: 12),
             _buildGlassIconButton(
+              icon: Icons.shield_rounded,
+              onTap: () => Get.toNamed('/legal-defense'),
+              color: Colors.redAccent,
+            ),
+            const SizedBox(width: 12),
+            _buildGlassIconButton(
               icon: Icons.logout_rounded,
               onTap: () => authController.logout(),
             ),
@@ -132,7 +138,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildGlassIconButton({required IconData icon, required VoidCallback onTap}) {
+  Widget _buildGlassIconButton({required IconData icon, required VoidCallback onTap, Color color = Colors.white}) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
       child: BackdropFilter(
@@ -144,7 +150,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             borderRadius: BorderRadius.circular(10),
           ),
           child: IconButton(
-            icon: Icon(icon, color: Colors.white, size: 20),
+            icon: Icon(icon, color: color, size: 20),
             onPressed: onTap,
           ),
         ),

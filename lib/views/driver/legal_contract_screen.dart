@@ -148,7 +148,7 @@ class LegalContractScreen extends StatelessWidget {
             'PLATFORM, taşımacılık hizmetinin tarafı olmayıp; taraflar arasındaki kira sözleşmesinin kurulmasına dijital aracılık etmektedir. Tüm operasyonel süreçler, mülkiyet ve tasarruf hakkı hizmet sağlayıcıya aittir.'),
             
           _buildLegalSection('4. DENETİM VE İBRAZ', 
-            'İşbu dijital sözleşme, kolluk kuvvetleri tarafından yapılan denetimlerde yasal dayanak teşkil eder. Sürücü, platform üyeliği boyunca bu belgenin tüm hükümlerini kabul etmiş sayılır.'),
+            'İşbu dijital sözleşme, 5070 Sayılı Elektronik İmza Kanunu ve TBK 299 uyarınca kolluk kuvvetleri denetimlerinde yasal dayanak teşkil eder. Sürücü, platform üyeliği boyunca bu belgenin tüm hükümlerini kabul etmiş sayılır.'),
         ],
       ),
     );
