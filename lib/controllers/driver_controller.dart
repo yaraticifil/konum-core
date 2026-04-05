@@ -161,27 +161,45 @@ class DriverController extends GetxController {
     if (currentRide.value == null) return;
     try {
       final ride = currentRide.value!;
+      
+      // Şoförden platform komisyonunu cari hesap (dijital cüzdan) üzerinden düşme işlemi.
+      // Sadece asıl hesaptan (walletBalance) komisyon eksiltilir.
+      final newBalance = (driver.value?.walletBalance ?? 0) - ride.commission;
+
       await _firestore.collection('rides').doc(ride.id).update({
         'status': 'completed',
         'completedAt': FieldValue.serverTimestamp(),
       });
 
-      // Kazancı payout olarak ekle
-      if (ride.grossTotal > 0) {
-        await _firestore.collection('payouts').add({
-          'driverId': driver.value?.id ?? '',
-          'amount': ride.driverNet,
-          'description': '${ride.pickupAddress} → ${ride.destAddress}',
-          'status': 'completed',
-          'createdAt': FieldValue.serverTimestamp(),
-        });
+      // Bakiye düşümü (cari hesap mantığı, sadece borç kaydı olarak cüzdandan eksiltilir)
+      if (ride.commission > 0 && driver.value != null) {
+         await _firestore.collection('drivers').doc(driver.value!.id).update({
+           'walletBalance': newBalance,
+         });
       }
 
       currentRide.value = null;
-      await fetchPayouts();
-      Get.snackbar("Tamamlandı", "Yolculuk başarıyla tamamlandı. Kazancınız eklendi!");
+      await fetchDriverData(driver.value!.id); // Güncel cüzdan bakiyesini çek
+      Get.snackbar("Tamamlandı", "Yolculuk başarıyla tamamlandı. Komisyon tahakkuk ettirildi.");
     } catch (e) {
       debugPrint("Tamamlama hatası: $e");
+    }
+  }
+
+  /// IBAN Güncelleme (Dijital Kimlikten vb.)
+  Future<void> updateIban(String newIban) async {
+    if (driver.value == null) return;
+    isLoading.value = true;
+    try {
+      await _firestore.collection('drivers').doc(driver.value!.id).update({
+        'iban': newIban,
+      });
+      await fetchDriverData(driver.value!.id); // Cihaza geri çek
+      Get.snackbar("Başarılı", "IBAN numaranız hukuki kayıtlarımıza işlendi.");
+    } catch (e) {
+      Get.snackbar("Hata", "IBAN güncellenemedi: $e");
+    } finally {
+      isLoading.value = false;
     }
   }
 

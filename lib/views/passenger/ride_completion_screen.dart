@@ -1,25 +1,70 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
 import '../../models/ride_model.dart';
 import '../../services/ride_service.dart';
 import '../../legal/legal_texts.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/brand_config.dart';
 
-/// Ekran 2 — Yolculuk Tamamlandı · Ücret Özeti
-/// Yolcu + Sürücü Ortak Görünüm
-class RideCompletionScreen extends StatelessWidget {
+class RideCompletionScreen extends StatefulWidget {
   final Ride ride;
   const RideCompletionScreen({super.key, required this.ride});
 
-  // Aristokrat Renk Paleti
+  @override
+  State<RideCompletionScreen> createState() => _RideCompletionScreenState();
+}
+
+class _RideCompletionScreenState extends State<RideCompletionScreen> {
   static Color get _monsieurGold => AppColors.primary;
   static const Color _richBlack = Color(0xFF0A0A0A);
   static const Color _deepAnthracite = Color(0xFF121212);
 
+  String _paymentMethod = 'cash'; // Varsayılan: Nakit (Eğer yasal sınırın altındaysa)
+  String _driverIban = '';
+  bool _isLoadingIban = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // VUK kuralı: 7.000 TL ve üstü mecburi Havale
+    if (widget.ride.grossTotal >= 6950) {
+      _paymentMethod = 'transfer';
+    }
+    
+    // Şoförün güncel IBAN'ını Cloud Firestore'dan çek (Gerçek zamanlı en doğru IBAN)
+    _fetchDriverIban();
+  }
+
+  Future<void> _fetchDriverIban() async {
+    if (widget.ride.driverId == null) return;
+    setState(() => _isLoadingIban = true);
+    try {
+      final doc = await FirebaseFirestore.instance.collection('drivers').doc(widget.ride.driverId).get();
+      if (doc.exists && doc.data()!.containsKey('iban')) {
+        setState(() {
+          _driverIban = doc.data()!['iban'] ?? '';
+        });
+      }
+    } catch(e) {
+      debugPrint("IBAN çekilemedi: $e");
+    } finally {
+      setState(() => _isLoadingIban = false);
+    }
+  }
+
+  void _copyToClipboard(String text, String label) {
+    Clipboard.setData(ClipboardData(text: text));
+    Get.snackbar("Kopyalandı", "$label kopyalandı.", backgroundColor: Colors.black87, colorText: Colors.white);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final ride = widget.ride;
+    final bool isCashAllowed = ride.grossTotal < 6950;
+
     return Scaffold(
       backgroundColor: _richBlack,
       appBar: AppBar(
@@ -30,7 +75,7 @@ class RideCompletionScreen extends StatelessWidget {
           onPressed: () => Get.offAllNamed('/passenger-home')
         ),
         title: Text(
-          'YOLCULUK TAMAMLANDI', 
+          'HUKUKİ ÖDEME BEYANI', 
           style: GoogleFonts.spaceGrotesk(
             color: _monsieurGold, 
             fontWeight: FontWeight.w900, 
@@ -44,117 +89,238 @@ class RideCompletionScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // Başarı ikonu (Aristokrat Mühür)
-            Container(
-              width: 80, height: 80,
-              decoration: BoxDecoration(
-                color: Colors.greenAccent.withValues(alpha: 0.05), 
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.2)),
-              ),
-              child: const Icon(Icons.verified_rounded, color: Colors.greenAccent, size: 40),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'YASAL TAŞIT KİRALAMA ÖZETİ', 
-              style: GoogleFonts.spaceGrotesk(
-                color: Colors.grey[600], 
-                fontSize: 10, 
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
-              )
-            ),
-            const SizedBox(height: 30),
-
-            // ── ÜST BLOK: Yolculuk Bilgileri ──
+            // E-Fatura / Ücret Kartı
             _card([
-              _row('Yolculuk No', ride.invoiceNo.isNotEmpty ? ride.invoiceNo : 'OY-2026-XXXX'),
-              _row('Tarih / Saat', _formatDate(ride.createdAt)),
-              _routeRow(),
-              _row('Gerçekleşen Mesafe', '${ride.distanceKm.toStringAsFixed(1)} km'),
-              _row('Gerçekleşen Süre', '${ride.estimatedMinutes} dk'),
-              _row('Araç Segmenti', SegmentConfig.get(ride.segment).label),
-            ]),
-            const SizedBox(height: 16),
-
-            // ── ÜCRET KIRILIMI ──
-            _card([
-              _sectionHeader('ÜCRET KIRILIMI'),
-              const SizedBox(height: 15),
-              _fareRow('Açılış Bedeli', ride.openingFee),
-              _fareRow('Mesafe Bedeli', ride.distanceFee),
-              if (ride.segmentSurcharge > 0) _fareRow('Segment Farkı', ride.segmentSurcharge),
-              if (ride.marketAdjustment > 0) _fareRow('Piyasa Ayarı', ride.marketAdjustment),
-              if (ride.discount > 0) _fareRow('İndirim', -ride.discount, isDiscount: true),
-              const Divider(color: Colors.white10, height: 30),
-              _fareRow('KESİNLEŞEN TOPLAM BEDEL', ride.grossTotal, isBold: true),
-            ]),
-            const SizedBox(height: 16),
-
-
-            // ── E-FATURA / E-BELGE ──
-            _card([
-              _sectionHeader('E-FATURA / E-BELGE'),
-              const SizedBox(height: 10),
-              _row('Belge Tipi', 'Bilgilendirme Ekranı (Demo)'),
-              _row('Belge No', ride.invoiceNo.isNotEmpty ? ride.invoiceNo : 'DEMO-XXXX'),
-              _row('Belge Tarihi', _formatDate(ride.completedAt ?? ride.createdAt)),
-              const SizedBox(height: 8),
-              _row('Not', LegalTexts.passengerInvoiceInfo),
-              const SizedBox(height: 12),
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => Get.snackbar("Bilgi", "E-fatura indirme henüz entegre edilmedi."),
-                      icon: const Icon(Icons.download, size: 16),
-                      label: const Text('İndir', style: TextStyle(fontSize: 12)),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: _monsieurGold,
-                        side: BorderSide(color: _monsieurGold.withValues(alpha: 0.5)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => Get.snackbar("Bilgi", "QR doğrulama henüz entegre edilmedi."),
-                      icon: const Icon(Icons.qr_code, size: 16),
-                      label: const Text('QR Doğrula', style: TextStyle(fontSize: 12)),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.grey[400],
-                        side: BorderSide(color: Colors.grey[600]!),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
+                  _sectionHeader('FATURA ÖZETİ'),
+                  Text(
+                    ride.invoiceNo.isNotEmpty ? ride.invoiceNo : 'KN-XXXX', 
+                    style: TextStyle(color: Colors.grey[500], fontSize: 12)
                   ),
                 ],
               ),
+              const SizedBox(height: 15),
+              _fareRow('KESİNLEŞEN BEDEL', ride.grossTotal, isBold: true),
+              const SizedBox(height: 5),
+              Text(
+                'Yukarıdaki bedel haricinde hiçbir ek ücret talep edilemez.',
+                style: TextStyle(color: Colors.red[300], fontSize: 10, fontStyle: FontStyle.italic),
+              )
             ]),
+            
             const SizedBox(height: 20),
 
-            // Ana ekrana dön
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: () => Get.offAllNamed('/passenger-home'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _monsieurGold,
-                  foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                  elevation: 0,
+            // ÖDEME SEÇİMİ (VUK UYUMLU)
+            _card([
+              _sectionHeader('ÖDEME YÖNTEMİ SEÇİMİ'),
+              const SizedBox(height: 15),
+              
+              if (isCashAllowed) ...[
+                _buildPaymentOption(
+                  id: 'cash',
+                  title: 'Nakit Ödeme',
+                  icon: Icons.payments_rounded,
+                  description: 'Araba içinde şoföre elden ödeyin.',
                 ),
-                child: Text(
-                  'ANA EKRANA DÖN', 
-                  style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 14)
-                ),
+                const SizedBox(height: 10),
+              ],
+              
+              _buildPaymentOption(
+                id: 'transfer',
+                title: 'Banka Havalesi',
+                icon: Icons.account_balance_rounded,
+                description: 'Şoförün resmi hesabına anında transfer.',
               ),
+              
+              const SizedBox(height: 15),
+              
+              // Seçime Göre Çıkan Dinamik Bölge
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: _paymentMethod == 'cash' 
+                    ? _buildCashWarning() 
+                    : _buildBankTransferInfo(ride.invoiceNo),
+              ),
+            ]),
+            
+            const SizedBox(height: 30),
+
+            // Onay / Makbuz İndirme Butonları
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => Get.snackbar("Bilgi", "PDF E-Makbuz yakında entegre edilecek."),
+                    icon: const Icon(Icons.picture_as_pdf, size: 16),
+                    label: const Text('Makbuz İndir', style: TextStyle(fontSize: 12)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.grey[400],
+                      side: BorderSide(color: Colors.grey[600]!),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Get.offAllNamed('/passenger-home'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _monsieurGold,
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: Text(
+                      'ANA EKRANA DÖN', 
+                      style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 12)
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 20),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentOption({required String id, required String title, required IconData icon, required String description}) {
+    final bool isSelected = _paymentMethod == id;
+    
+    return GestureDetector(
+      onTap: () {
+        if (!isSelected) {
+          setState(() {
+            _paymentMethod = id;
+          });
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: isSelected ? _monsieurGold.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? _monsieurGold : Colors.white.withValues(alpha: 0.1),
+            width: isSelected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: isSelected ? _monsieurGold : Colors.grey, size: 28),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(color: isSelected ? Colors.white : Colors.grey[400], fontWeight: FontWeight.bold, fontSize: 14)),
+                  const SizedBox(height: 4),
+                  Text(description, style: TextStyle(color: Colors.grey[600], fontSize: 11)),
+                ],
+              ),
+            ),
+            if (isSelected) 
+               const Icon(Icons.check_circle_rounded, color: _monsieurGold, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCashWarning() {
+    return Container(
+      key: const ValueKey('cash'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.redAccent.withValues(alpha: 0.05),
+        border: Border(left: BorderSide(color: Colors.redAccent, width: 3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.gavel_rounded, color: Colors.redAccent, size: 16),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'VUK Tebliğleri uyarınca 7.000 TL altı kira bedelleri nakden tahsil edilebilir. Ödemenizi şoföre fiziken yapınız.',
+              style: GoogleFonts.publicSans(color: Colors.red[200], fontSize: 11, fontStyle: FontStyle.italic),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBankTransferInfo(String invoiceNo) {
+    return Container(
+      key: const ValueKey('transfer'),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.blueAccent.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.info_outline_rounded, color: Colors.blueAccent, size: 16),
+              const SizedBox(width: 8),
+              Text('Şoförün Yasal İban Numarası', style: TextStyle(color: Colors.blueAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 15),
+          
+          if (_isLoadingIban)
+            const Center(child: CircularProgressIndicator(strokeWidth: 2))
+          else if (_driverIban.isEmpty)
+            Text('Şoför henüz IBAN tanımlamamış. Lütfen nakit ödeme yapınız.', style: TextStyle(color: Colors.grey[500], fontSize: 12))
+          else ...[
+             // IBAN Kutu
+             Container(
+               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+               decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8)),
+               child: Row(
+                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                 children: [
+                   Expanded(
+                     child: Text(_driverIban, style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 14, letterSpacing: 1, fontWeight: FontWeight.bold)),
+                   ),
+                   IconButton(
+                     padding: EdgeInsets.zero, constraints: const BoxConstraints(),
+                     icon: const Icon(Icons.copy_rounded, color: Colors.grey, size: 18),
+                     onPressed: () => _copyToClipboard(_driverIban, 'IBAN Numarası'),
+                   )
+                 ],
+               ),
+             ),
+             const SizedBox(height: 15),
+             Text('Açıklama Kısmına Şunu Yazınız:', style: TextStyle(color: Colors.grey[400], fontSize: 11)),
+             const SizedBox(height: 5),
+             // Açıklama Kutu
+             Container(
+               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+               decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8)),
+               child: Row(
+                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                 children: [
+                   Text(invoiceNo, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                   IconButton(
+                     padding: EdgeInsets.zero, constraints: const BoxConstraints(),
+                     icon: const Icon(Icons.copy_rounded, color: Colors.grey, size: 18),
+                     onPressed: () => _copyToClipboard(invoiceNo, 'Fatura No/Açıklama'),
+                   )
+                 ],
+               ),
+             ),
+          ]
+        ],
       ),
     );
   }
@@ -185,53 +351,7 @@ class RideCompletionScreen extends StatelessWidget {
     );
   }
 
-  Widget _row(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: TextStyle(color: Colors.grey[500], fontSize: 12)),
-          const SizedBox(width: 10),
-          Flexible(child: Text(value, style: const TextStyle(color: Colors.white, fontSize: 12), textAlign: TextAlign.end)),
-        ],
-      ),
-    );
-  }
-
-  Widget _routeRow() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Rota', style: TextStyle(color: Colors.grey[500], fontSize: 12)),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              const Icon(Icons.circle, color: Colors.green, size: 8),
-              const SizedBox(width: 6),
-              Expanded(child: Text(ride.pickupAddress, style: const TextStyle(color: Colors.white, fontSize: 11), overflow: TextOverflow.ellipsis)),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.only(left: 3),
-            child: Container(width: 1, height: 14, color: Colors.grey[600]),
-          ),
-          Row(
-            children: [
-              const Icon(Icons.location_on, color: Color(0xFFFFD700), size: 8),
-              const SizedBox(width: 6),
-              Expanded(child: Text(ride.destAddress, style: const TextStyle(color: Colors.white, fontSize: 11), overflow: TextOverflow.ellipsis)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _fareRow(String label, double amount, {bool isBold = false, bool isDiscount = false}) {
+  Widget _fareRow(String label, double amount, {bool isBold = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -243,19 +363,15 @@ class RideCompletionScreen extends StatelessWidget {
             fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
           ))),
           Text(
-            '${isDiscount ? "-" : ""}₺${amount.abs().toStringAsFixed(2)}',
+            '₺${amount.abs().toStringAsFixed(2)}',
             style: GoogleFonts.spaceGrotesk(
-              color: isDiscount ? Colors.greenAccent : (isBold ? _monsieurGold : Colors.white),
-              fontSize: isBold ? 20 : 13,
+              color: isBold ? _monsieurGold : Colors.white,
+              fontSize: isBold ? 24 : 13,
               fontWeight: isBold ? FontWeight.w900 : FontWeight.bold,
             ),
           ),
         ],
       ),
     );
-  }
-
-  String _formatDate(DateTime dt) {
-    return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 }

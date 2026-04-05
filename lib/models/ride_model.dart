@@ -40,6 +40,7 @@ class Ride {
   final double commission;
   final double driverNet;
   final double marketRate;
+  final String paymentMethod; // e.g. 'cash', 'transfer', or empty ' '
 
   final DateTime createdAt;
   final DateTime? startedAt;
@@ -73,6 +74,7 @@ class Ride {
     this.commission = 0,
     this.driverNet = 0,
     this.marketRate = 1.0,
+    this.paymentMethod = '',
     required this.createdAt,
     this.startedAt,
     this.completedAt,
@@ -108,6 +110,7 @@ class Ride {
       commission: (data['commission'] ?? 0).toDouble(),
       driverNet: (data['driverNet'] ?? 0).toDouble(),
       marketRate: (data['marketRate'] ?? 1.0).toDouble(),
+      paymentMethod: data['paymentMethod'] ?? '',
       createdAt: _parseDate(data['createdAt']),
       startedAt: data['startedAt'] != null ? _parseDate(data['startedAt']) : null,
       completedAt: data['completedAt'] != null ? _parseDate(data['completedAt']) : null,
@@ -180,6 +183,7 @@ class Ride {
       'commission': commission,
       'driverNet': driverNet,
       'marketRate': marketRate,
+      'paymentMethod': paymentMethod,
       'createdAt': FieldValue.serverTimestamp(),
       'startedAt': startedAt?.toIso8601String(),
       'completedAt': completedAt?.toIso8601String(),

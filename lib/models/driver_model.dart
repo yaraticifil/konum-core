@@ -8,6 +8,8 @@ class Driver {
   final String phone;
   final DriverStatus status;
   final DateTime createdAt;
+  final String iban;
+  final double walletBalance;
 
   // Add uid getter as an alias for id to fix UI references
   String get uid => id;
@@ -18,6 +20,8 @@ class Driver {
     required this.phone,
     required this.status,
     required this.createdAt,
+    this.iban = '',
+    this.walletBalance = 0.0,
   });
 
   factory Driver.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -28,6 +32,8 @@ class Driver {
       phone: data['phone'] ?? '',
       status: _parseStatus(data['status']),
       createdAt: data['createdAt'] != null ? DateTime.parse(data['createdAt']) : DateTime.now(),
+      iban: data['iban'] ?? '',
+      walletBalance: (data['walletBalance'] ?? 0).toDouble(),
     );
   }
 
@@ -46,6 +52,8 @@ class Driver {
       'phone': phone,
       'status': status.toString().split('.').last,
       'createdAt': createdAt.toIso8601String(),
+      'iban': iban,
+      'walletBalance': walletBalance,
     };
   }
 

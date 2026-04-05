@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../controllers/auth_controller.dart';
+import '../../controllers/driver_controller.dart';
 import '../../utils/brand_config.dart';
 
 class DigitalIdScreen extends StatelessWidget {
@@ -78,6 +79,11 @@ class DigitalIdScreen extends StatelessWidget {
                 // Doğrulama Bölümü
                 _buildVerificationSection(driver),
                 
+                const SizedBox(height: 30),
+
+                // IBAN ve Finansal Cüzdan Bölümü
+                _buildFinancialSection(context, driver, authController),
+
                 const SizedBox(height: 40),
                 
                 // Alt Bilgi
@@ -306,6 +312,144 @@ class DigitalIdScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFinancialSection(BuildContext context, dynamic driver, dynamic authController) {
+    bool hasIban = driver.iban != null && driver.iban.isNotEmpty;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 25),
+      padding: const EdgeInsets.all(25),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.02),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _monsieurGold.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.account_balance_wallet_rounded, color: _monsieurGold, size: 20),
+              const SizedBox(width: 10),
+              Text(
+                'RESMİ FİNANS HESABI',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  color: _monsieurGold,
+                  letterSpacing: 1.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Kayıtlı IBAN', style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+              GestureDetector(
+                onTap: () => _showIbanDialog(context, driver, authController),
+                child: Text(
+                  hasIban ? 'DÜZENLE' : 'EKLENECEK',
+                  style: GoogleFonts.spaceGrotesk(color: _bronzeAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Text(
+            hasIban ? driver.iban : 'TR__ ____ ____ ____ ____ ____ __',
+            style: GoogleFonts.spaceGrotesk(
+              color: hasIban ? Colors.white : Colors.white30,
+              fontSize: 14,
+              letterSpacing: 2,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(width: double.infinity, height: 1, color: Colors.white12),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Cari Cüzdan Bakiyesi', style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+              Text(
+                '₺${driver.walletBalance.toStringAsFixed(2)}',
+                style: GoogleFonts.spaceGrotesk(
+                  color: driver.walletBalance < 0 ? Colors.redAccent : Colors.greenAccent,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showIbanDialog(BuildContext context, dynamic driver, dynamic authController) {
+    final TextEditingController ibanController = TextEditingController(text: driver.iban ?? '');
+    Get.dialog(
+      Dialog(
+        backgroundColor: _richBlack,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: _monsieurGold.withValues(alpha: 0.5)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(25),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.account_balance_rounded, color: _monsieurGold, size: 40),
+              const SizedBox(height: 15),
+              Text(
+                'IBAN BİLGİSİ GÜNCELLEME',
+                style: GoogleFonts.spaceGrotesk(color: _monsieurGold, fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: ibanController,
+                style: const TextStyle(color: Colors.white, letterSpacing: 2),
+                decoration: InputDecoration(
+                  labelText: 'TR ile başlayan IBAN numaranız',
+                  labelStyle: TextStyle(color: Colors.grey[600]),
+                  enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Colors.white24)),
+                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: _monsieurGold)),
+                ),
+              ),
+              const SizedBox(height: 25),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Get.back(),
+                    child: const Text('İPTAL', style: TextStyle(color: Colors.grey)),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: () async {
+                      if (ibanController.text.trim().isNotEmpty) {
+                        try {
+                          final drvCtrl = Get.find<DriverController>();
+                          await drvCtrl.updateIban(ibanController.text.trim());
+                        } catch(e) {
+                           debugPrint('IBAN kaydetme hatası: $e');
+                        }
+                      }
+                      Get.back();
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: _monsieurGold),
+                    child: const Text('KAYDET', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
