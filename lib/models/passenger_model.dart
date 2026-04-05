@@ -33,7 +33,8 @@ class Passenger {
       'name': name,
       'phone': phone,
       'email': email,
-      'createdAt': createdAt.toIso8601String(),
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
       'role': 'passenger',
     };
   }

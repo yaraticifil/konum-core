@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:get/get.dart';
 import '../../utils/app_colors.dart';
 
 class TripManagementScreen extends StatefulWidget {
@@ -150,6 +151,8 @@ class _TripManagementScreenState extends State<TripManagementScreen> {
                   children: [
                     Text('YOLCU ALINIYOR', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary)),
                     Text('Zeynep Demir', style: GoogleFonts.spaceGrotesk(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                    const SizedBox(height: 4),
+                    Text('Hazırlık Süresi: 15 Dakika', style: GoogleFonts.publicSans(fontSize: 12, color: Colors.redAccent, fontWeight: FontWeight.bold)),
                   ],
                 )),
                 Text('2.4 km', style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
@@ -162,6 +165,16 @@ class _TripManagementScreenState extends State<TripManagementScreen> {
                 const SizedBox(width: 15),
                 Expanded(flex: 3, child: ElevatedButton(onPressed: () {}, style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, foregroundColor: Colors.white), child: Text('VARDIĞIMI BİLDİR', style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.bold)))),
               ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => Get.toNamed('/legal-defense'),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                icon: const Icon(Icons.gpp_maybe),
+                label: Text('DENETİM MODU', style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.bold)),
+              ),
             ),
           ],
         ),

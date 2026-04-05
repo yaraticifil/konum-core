@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 
 /// Araç Segmenti
 enum VehicleSegment {
@@ -321,6 +323,18 @@ class RideService {
     });
 
     return driverId;
+  }
+
+
+
+  String generateLegalHash({
+    required String rideId,
+    required String driverId,
+    required String passengerId,
+    required DateTime pickupTime,
+  }) {
+    final raw = '$rideId$driverId$passengerId${pickupTime.toIso8601String()}TBK299';
+    return sha256.convert(utf8.encode(raw)).toString();
   }
 
   // ── YARDIMCI ──

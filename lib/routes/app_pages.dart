@@ -24,6 +24,7 @@ import '../views/driver/driver_kyc_screen.dart';
 import '../views/driver/trip_management_screen.dart';
 import '../views/driver/operational_status_screen.dart';
 import '../views/driver/ai_assistant_screen.dart';
+import '../views/driver/legal_defense_screen.dart';
 import '../views/admin/admin_audit_screen.dart';
 import '../legal/privacy_policy_page.dart';
 import '../legal/clarification_page.dart';
@@ -144,6 +145,11 @@ class AppPages {
     GetPage(
       name: '/ride-detail',
       page: () => const RideDetailScreen(),
+      binding: DriverBinding(),
+    ),
+    GetPage(
+      name: '/legal-defense',
+      page: () => const LegalDefenseScreen(),
       binding: DriverBinding(),
     ),
     // ─── HUKUKİ / BİLGİLENDİRME SAYFALARI ───

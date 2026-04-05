@@ -28,47 +28,47 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBYArx0gnG2cJLGqCo5jNd4b-22GObygQo',
-    appId: '1:772761045864:web:081776d56a2b76bf1bc88576806e7090',
-    messagingSenderId: '772761045864',
-    projectId: 'ortak-yol-driver',
-    authDomain: 'ortak-yol-driver.firebaseapp.com',
-    storageBucket: 'ortak-yol-driver.firebasestorage.app',
+  static FirebaseOptions get web => FirebaseOptions(
+    apiKey: const String.fromEnvironment('FIREBASE_WEB_API_KEY'),
+    appId: const String.fromEnvironment('FIREBASE_WEB_APP_ID'),
+    messagingSenderId: const String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID'),
+    projectId: const String.fromEnvironment('FIREBASE_PROJECT_ID'),
+    authDomain: const String.fromEnvironment('FIREBASE_AUTH_DOMAIN'),
+    storageBucket: const String.fromEnvironment('FIREBASE_STORAGE_BUCKET'),
   );
 
-  static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAmbCdXX2jKx7QpflPklMjfqwDbToryEFc',
-    appId: '1:772761045864:android:e56a8886368d1db3b0a4dd',
-    messagingSenderId: '772761045864',
-    projectId: 'ortak-yol-driver',
-    storageBucket: 'ortak-yol-driver.firebasestorage.app',
+  static FirebaseOptions get android => FirebaseOptions(
+    apiKey: const String.fromEnvironment('FIREBASE_ANDROID_API_KEY'),
+    appId: const String.fromEnvironment('FIREBASE_ANDROID_APP_ID'),
+    messagingSenderId: const String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID'),
+    projectId: const String.fromEnvironment('FIREBASE_PROJECT_ID'),
+    storageBucket: const String.fromEnvironment('FIREBASE_STORAGE_BUCKET'),
   );
 
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAg7U5n94vq0lXBh-d-_iIofq_VuScKfX0',
-    appId: '1:772761045864:ios:8f50ea6a52e7bf8ab0a4dd',
-    messagingSenderId: '772761045864',
-    projectId: 'ortak-yol-driver',
-    storageBucket: 'ortak-yol-driver.firebasestorage.app',
-    iosBundleId: 'com.ortakyol.driver',
+  static FirebaseOptions get ios => FirebaseOptions(
+    apiKey: const String.fromEnvironment('FIREBASE_IOS_API_KEY'),
+    appId: const String.fromEnvironment('FIREBASE_IOS_APP_ID'),
+    messagingSenderId: const String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID'),
+    projectId: const String.fromEnvironment('FIREBASE_PROJECT_ID'),
+    storageBucket: const String.fromEnvironment('FIREBASE_STORAGE_BUCKET'),
+    iosBundleId: 'com.konum.app',
   );
 
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyAg7U5n94vq0lXBh-d-_iIofq_VuScKfX0',
-    appId: '1:772761045864:ios:8f50ea6a52e7bf8ab0a4dd',
-    messagingSenderId: '772761045864',
-    projectId: 'ortak-yol-driver',
-    storageBucket: 'ortak-yol-driver.firebasestorage.app',
-    iosBundleId: 'com.ortakyol.driver',
+  static FirebaseOptions get macos => FirebaseOptions(
+    apiKey: const String.fromEnvironment('FIREBASE_IOS_API_KEY'),
+    appId: const String.fromEnvironment('FIREBASE_IOS_APP_ID'),
+    messagingSenderId: const String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID'),
+    projectId: const String.fromEnvironment('FIREBASE_PROJECT_ID'),
+    storageBucket: const String.fromEnvironment('FIREBASE_STORAGE_BUCKET'),
+    iosBundleId: 'com.konum.app',
   );
 
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyAg7U5n94vq0lXBh-d-_iIofq_VuScKfX0',
-    appId: '1:772761045864:web:081776d56a2b76bf1bc88576806e7090',
-    messagingSenderId: '772761045864',
-    projectId: 'ortak-yol-driver',
-    authDomain: 'ortak-yol-driver.firebaseapp.com',
-    storageBucket: 'ortak-yol-driver.firebasestorage.app',
+  static FirebaseOptions get windows => FirebaseOptions(
+    apiKey: const String.fromEnvironment('FIREBASE_WEB_API_KEY'),
+    appId: const String.fromEnvironment('FIREBASE_WEB_APP_ID'),
+    messagingSenderId: const String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID'),
+    projectId: const String.fromEnvironment('FIREBASE_PROJECT_ID'),
+    authDomain: const String.fromEnvironment('FIREBASE_AUTH_DOMAIN'),
+    storageBucket: const String.fromEnvironment('FIREBASE_STORAGE_BUCKET'),
   );
 }

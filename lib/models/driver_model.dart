@@ -31,7 +31,7 @@ class Driver {
       name: data['name'] ?? '',
       phone: data['phone'] ?? '',
       status: _parseStatus(data['status']),
-      createdAt: data['createdAt'] != null ? DateTime.parse(data['createdAt']) : DateTime.now(),
+      createdAt: data['createdAt'] is Timestamp ? (data['createdAt'] as Timestamp).toDate() : (data['createdAt'] != null ? DateTime.parse(data['createdAt']) : DateTime.now()),
       iban: data['iban'] ?? '',
       walletBalance: (data['walletBalance'] ?? 0).toDouble(),
     );
@@ -51,7 +51,8 @@ class Driver {
       'name': name,
       'phone': phone,
       'status': status.toString().split('.').last,
-      'createdAt': createdAt.toIso8601String(),
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
       'iban': iban,
       'walletBalance': walletBalance,
     };
@@ -65,4 +66,4 @@ class Driver {
       default: return 'Beklemede';
     }
   }
-}
+}

@@ -9,9 +9,18 @@ import '../models/ride_model.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
+import '../services/ride_service.dart';
+import '../services/invoice_service.dart';
+import '../services/error_logger_service.dart';
+import '../services/insurance_service.dart';
+import '../models/error_model.dart';
 
 class DriverController extends GetxController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final RideService _rideService = RideService();
+  final InvoiceService _invoiceService = InvoiceService();
+  final ErrorLoggerService _errorLogger = ErrorLoggerService();
+  final InsuranceService _insuranceService = InsuranceService();
 
   // UI'da çarkın dönmesi ve butonun kilitlenmesi için gerekli
   final RxBool isLoading = false.obs;
@@ -73,6 +82,7 @@ class DriverController extends GetxController {
           backgroundColor: const Color(0xFF2C2C2C));
     } catch (e) {
       debugPrint("Çevrimiçi hatası: $e");
+      await _errorLogger.log(ErrorModel(code: "DRIVER_ONLINE_FAIL", message: e.toString(), source: "DriverController.goOnline", occurredAt: DateTime.now()));
       Get.snackbar("Hata", "Çevrimiçi olunamadı: $e");
     }
   }
@@ -111,14 +121,18 @@ class DriverController extends GetxController {
   /// Çağrıyı kabul et
   Future<void> acceptRide(String rideId) async {
     try {
+      final scheduledPickupTime = DateTime.now().add(const Duration(minutes: 15));
       await _firestore.collection('rides').doc(rideId).update({
-        'status': 'driver_arriving',
+        'status': 'pre_reserved',
+        'scheduledPickupTime': Timestamp.fromDate(scheduledPickupTime),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
       currentRide.value = incomingRide.value;
       incomingRide.value = null;
-      Get.snackbar("Kabul Edildi", "Yolcuya doğru yola çıkın!");
+      Get.snackbar("Kabul Edildi", "Hazırlık Süresi: 15 Dakika (Ön Rezervasyon)");
     } catch (e) {
       debugPrint("Kabul hatası: $e");
+      await _errorLogger.log(ErrorModel(code: "RIDE_ACCEPT_FAIL", message: e.toString(), source: "DriverController.acceptRide", occurredAt: DateTime.now(), metadata: {"rideId": rideId}));
     }
   }
 
@@ -150,9 +164,19 @@ class DriverController extends GetxController {
       await _firestore.collection('rides').doc(currentRide.value!.id).update({
         'status': 'in_progress',
         'startedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
+
+      final ride = currentRide.value!;
+      await _insuranceService.issueSeatInsurance(
+        rideId: ride.id,
+        driverId: ride.driverId ?? '',
+        passengerId: ride.passengerId,
+        scheduledPickupTime: ride.scheduledPickupTime ?? DateTime.now(),
+      );
     } catch (e) {
       debugPrint("Başlatma hatası: $e");
+      await _errorLogger.log(ErrorModel(code: "RIDE_START_FAIL", message: e.toString(), source: "DriverController.startRide", occurredAt: DateTime.now(), metadata: {"rideId": currentRide.value?.id}));
     }
   }
 
@@ -166,9 +190,25 @@ class DriverController extends GetxController {
       // Sadece asıl hesaptan (walletBalance) komisyon eksiltilir.
       final newBalance = (driver.value?.walletBalance ?? 0) - ride.commission;
 
+      final legalHash = _rideService.generateLegalHash(
+        rideId: ride.id,
+        driverId: ride.driverId ?? '',
+        passengerId: ride.passengerId,
+        pickupTime: ride.scheduledPickupTime ?? ride.createdAt,
+      );
+      final invoiceUrl = await _invoiceService.createEArsivInvoice(
+        rideId: ride.id,
+        driverId: ride.driverId ?? '',
+        passengerId: ride.passengerId,
+        grossTotal: ride.grossTotal,
+      );
+
       await _firestore.collection('rides').doc(ride.id).update({
         'status': 'completed',
+        'legalHash': legalHash,
+        'invoiceUrl': invoiceUrl,
         'completedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
 
       // Bakiye düşümü (cari hesap mantığı, sadece borç kaydı olarak cüzdandan eksiltilir)
@@ -183,6 +223,7 @@ class DriverController extends GetxController {
       Get.snackbar("Tamamlandı", "Yolculuk başarıyla tamamlandı. Komisyon tahakkuk ettirildi.");
     } catch (e) {
       debugPrint("Tamamlama hatası: $e");
+      await _errorLogger.log(ErrorModel(code: "RIDE_COMPLETE_FAIL", message: e.toString(), source: "DriverController.completeRide", occurredAt: DateTime.now(), metadata: {"rideId": currentRide.value?.id}));
     }
   }
 
