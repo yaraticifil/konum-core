@@ -12,6 +12,7 @@ import '../../services/ride_service.dart';
 import '../../utils/app_colors.dart';
 import '../../legal/legal_texts.dart';
 import '../../utils/brand_config.dart';
+import '../../services/app_notifier.dart';
 
 class PassengerHomeScreen extends StatefulWidget {
   const PassengerHomeScreen({super.key});
@@ -121,7 +122,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
         }
       }
     } catch (e) {
-      Get.snackbar("Hata", "Adres bulunamadı.");
+      AppNotifier.snackbar("Hata", "Adres bulunamadı.");
     }
   }
 

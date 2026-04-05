@@ -1,10 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:driver_app/main.dart';
+import 'package:get/get.dart';
+import 'package:konum_app/main.dart';
 
 void main() {
-  testWidgets('Uygulama başlangıç testi', (WidgetTester tester) async {
-    await tester.pumpWidget(const DriverApp());
+  testWidgets('Uygulama kabuğu oluşturuluyor', (WidgetTester tester) async {
+    await tester.pumpWidget(const KonumApp());
 
-    expect(find.text('Ortak Yol'), findsOneWidget);
+    expect(find.byType(GetMaterialApp), findsOneWidget);
   });
 }

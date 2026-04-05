@@ -5,6 +5,8 @@ import 'package:get/get.dart';
 import '../models/driver_model.dart';
 import '../models/passenger_model.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../models/log_severity.dart';
+import '../services/app_notifier.dart';
 
 class AuthController extends GetxController {
   static AuthController instance = Get.find();
@@ -15,16 +17,13 @@ class AuthController extends GetxController {
   final Rx<Driver?> _driver = Rx<Driver?>(null);
   final Rx<Passenger?> _passenger = Rx<Passenger?>(null);
   final RxBool isLoading = false.obs;
-  final RxString userRole = ''.obs; // 'driver', 'passenger', 'admin', 'founder'
-
-  // Kurucu Sabiti
-  static const String founderEmail = 'gumussalimm@gmail.com';
+  final RxString userRole = ''.obs; // 'driver', 'passenger', 'admin'
 
   User? get user => _user.value;
   Driver? get driver => _driver.value;
   Passenger? get passenger => _passenger.value;
 
-  bool get isFounder => _user.value?.email == founderEmail;
+  bool get isAdmin => userRole.value == 'admin';
 
   @override
   void onInit() {
@@ -35,11 +34,7 @@ class AuthController extends GetxController {
 
   void _handleAuthChange(User? user) async {
     if (user != null) {
-      if (user.email == founderEmail) {
-        userRole.value = 'founder';
-      } else {
-        await _detectUserRole(user.uid);
-      }
+      await _detectUserRole(user.uid);
     } else {
       _driver.value = null;
       _passenger.value = null;
@@ -50,20 +45,14 @@ class AuthController extends GetxController {
   /// Kullanıcının rolünü tespit et (drivers veya passengers koleksiyonunda mı?)
   Future<void> _detectUserRole(String uid) async {
     try {
-      // Kurucu kontrolü (E-posta bazlı ek güvenlik)
-      if (_auth.currentUser?.email == founderEmail) {
-        userRole.value = 'founder';
-        return;
-      }
-
-      // 1. Önce admins koleksiyonuna bak (Güvenlik önceliği)
-      final adminDoc = await _firestore.collection('admins').doc(uid).get();
-      if (adminDoc.exists) {
+      final idTokenResult = await _auth.currentUser?.getIdTokenResult(true);
+      final bool hasAdminClaim = (idTokenResult?.claims?['admin'] == true);
+      if (hasAdminClaim) {
         userRole.value = 'admin';
         return;
       }
 
-      // 2. Sonra drivers koleksiyonuna bak
+      // 1. Driver rolü
       final driverDoc = await _firestore.collection('drivers').doc(uid).get();
       if (driverDoc.exists) {
         _driver.value = Driver.fromFirestore(driverDoc);
@@ -71,7 +60,7 @@ class AuthController extends GetxController {
         return;
       }
 
-      // 3. Sonra passengers koleksiyonuna bak
+      // 2. Passenger rolü
       final passengerDoc = await _firestore.collection('passengers').doc(uid).get();
       if (passengerDoc.exists) {
         _passenger.value = Passenger.fromFirestore(passengerDoc);
@@ -102,7 +91,12 @@ class AuthController extends GetxController {
     try {
       await _auth.signInWithEmailAndPassword(email: email, password: password);
     } catch (e) {
-      Get.snackbar("Hata", "Giriş başarısız: $e");
+      await AppNotifier.snackbar(
+        "Hata",
+        "Giriş başarısız: $e",
+        severity: LogSeverity.critical,
+        source: "AuthController.login",
+      );
     } finally {
       isLoading.value = false;
     }
@@ -132,7 +126,13 @@ class AuthController extends GetxController {
         throw "Veritabanı hatası: $firestoreError. Lütfen tekrar deneyin.";
       }
     } catch (e) {
-      Get.snackbar("Hata", "Kayıt hatası: $e", duration: const Duration(seconds: 5));
+      await AppNotifier.snackbar(
+        "Hata",
+        "Kayıt hatası: $e",
+        severity: LogSeverity.critical,
+        source: "AuthController.registerDriver",
+        duration: const Duration(seconds: 5),
+      );
     } finally {
       isLoading.value = false;
     }
@@ -158,7 +158,13 @@ class AuthController extends GetxController {
         throw "Veritabanı hatası: $firestoreError. Lütfen tekrar deneyin.";
       }
     } catch (e) {
-      Get.snackbar("Hata", "Kayıt hatası: $e", duration: const Duration(seconds: 5));
+      await AppNotifier.snackbar(
+        "Hata",
+        "Kayıt hatası: $e",
+        severity: LogSeverity.critical,
+        source: "AuthController.registerPassenger",
+        duration: const Duration(seconds: 5),
+      );
     } finally {
       isLoading.value = false;
     }
@@ -168,10 +174,20 @@ class AuthController extends GetxController {
   Future<void> resetPassword(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email);
-      Get.snackbar("Başarılı", "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.",
-          duration: const Duration(seconds: 5));
+      await AppNotifier.snackbar(
+        "Başarılı",
+        "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.",
+        severity: LogSeverity.low,
+        source: "AuthController.resetPassword",
+        duration: const Duration(seconds: 5),
+      );
     } catch (e) {
-      Get.snackbar("Hata", "Şifre sıfırlama hatası: $e");
+      await AppNotifier.snackbar(
+        "Hata",
+        "Şifre sıfırlama hatası: $e",
+        severity: LogSeverity.critical,
+        source: "AuthController.resetPassword",
+      );
     }
   }
 
@@ -196,7 +212,6 @@ class AuthController extends GetxController {
     }
 
     switch (userRole.value) {
-      case 'founder':
       case 'admin':
         Get.offAllNamed('/admin-dashboard');
         break;
@@ -230,11 +245,21 @@ class AuthController extends GetxController {
         if (await canLaunchUrl(phoneUrl)) {
           await launchUrl(phoneUrl);
         } else {
-          Get.snackbar("Hata", "Arama yapılamıyor.");
+          await AppNotifier.snackbar(
+            "Hata",
+            "Arama yapılamıyor.",
+            severity: LogSeverity.medium,
+            source: "AuthController.launchEmergencySupport",
+          );
         }
       }
     } catch (e) {
-      Get.snackbar("Hata", "Bir sorun oluştu: $e");
+      await AppNotifier.snackbar(
+        "Hata",
+        "Bir sorun oluştu: $e",
+        severity: LogSeverity.critical,
+        source: "AuthController.launchEmergencySupport",
+      );
     }
   }
 
@@ -246,7 +271,12 @@ class AuthController extends GetxController {
         await launchUrl(phoneUrl);
       }
     } catch (e) {
-      Get.snackbar("Hata", "Arama yapılamadı: $e");
+      await AppNotifier.snackbar(
+        "Hata",
+        "Arama yapılamadı: $e",
+        severity: LogSeverity.medium,
+        source: "AuthController.callEmergency",
+      );
     }
   }
 }

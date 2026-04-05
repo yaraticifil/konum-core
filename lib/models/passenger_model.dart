@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/date_time_serializer.dart';
 
 class Passenger {
   final String id;
@@ -22,9 +23,7 @@ class Passenger {
       name: data['name'] ?? '',
       phone: data['phone'] ?? '',
       email: data['email'] ?? '',
-      createdAt: data['createdAt'] != null
-          ? DateTime.parse(data['createdAt'])
-          : DateTime.now(),
+      createdAt: DateTimeSerializer.fromFirestore(data['createdAt']),
     );
   }
 

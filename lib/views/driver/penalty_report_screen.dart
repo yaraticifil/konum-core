@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../controllers/driver_controller.dart';
 import '../../legal/legal_texts.dart';
+import '../../services/app_notifier.dart';
 
 class PenaltyReportScreen extends StatefulWidget {
   const PenaltyReportScreen({super.key});
@@ -36,7 +37,7 @@ class _PenaltyReportScreenState extends State<PenaltyReportScreen> {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        Get.snackbar("Hata", "Konum servisleri kapalı.");
+        AppNotifier.snackbar("Hata", "Konum servisleri kapalı.");
         return;
       }
 
@@ -44,7 +45,7 @@ class _PenaltyReportScreenState extends State<PenaltyReportScreen> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          Get.snackbar("Hata", "Konum izni reddedildi.");
+          AppNotifier.snackbar("Hata", "Konum izni reddedildi.");
           return;
         }
       }
@@ -52,7 +53,7 @@ class _PenaltyReportScreenState extends State<PenaltyReportScreen> {
       _currentPosition = await Geolocator.getCurrentPosition();
       setState(() {});
     } catch (e) {
-      Get.snackbar("Hata", "Konum alınamadı: $e");
+      AppNotifier.snackbar("Hata", "Konum alınamadı: $e");
     } finally {
       setState(() => _isGettingLocation = false);
     }
@@ -60,11 +61,11 @@ class _PenaltyReportScreenState extends State<PenaltyReportScreen> {
 
   void _submitReport() {
     if (_selectedImage == null) {
-      Get.snackbar("Hata", "Lütfen bir fotoğraf ekleyin (Ceza tutanağı veya olay yerini).");
+      AppNotifier.snackbar("Hata", "Lütfen bir fotoğraf ekleyin (Ceza tutanağı veya olay yerini).");
       return;
     }
     if (_currentPosition == null) {
-      Get.snackbar("Hata", "Lütfen konumunuzu ekleyin.");
+      AppNotifier.snackbar("Hata", "Lütfen konumunuzu ekleyin.");
       return;
     }
 

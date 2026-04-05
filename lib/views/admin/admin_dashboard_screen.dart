@@ -10,6 +10,7 @@ import '../../controllers/auth_controller.dart';
 import '../../controllers/admin_controller.dart';
 import '../../models/driver_model.dart';
 import '../../utils/app_colors.dart';
+import '../../services/app_notifier.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -91,7 +92,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   void _checkAdminAccess() {
     if (authController.userRole.value != 'admin') {
-      Get.snackbar(
+      AppNotifier.snackbar(
         'KRİTİK UYARI',
         'Strateji Odasına giriş yetkiniz bulunmamaktadır.',
         backgroundColor: _alertRed,
@@ -520,7 +521,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           onPressed: () {
                             adminController.updateDriverStatus(driverId, DriverStatus.suspended);
                             Get.back();
-                            Get.snackbar(
+                            AppNotifier.snackbar(
                               'OTORİTE KULLANILDI',
                               'Sürücü $driverName sistemden başarıyla atıldı.',
                               backgroundColor: _monsieurGold,

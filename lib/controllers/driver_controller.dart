@@ -14,6 +14,7 @@ import '../services/invoice_service.dart';
 import '../services/error_logger_service.dart';
 import '../services/insurance_service.dart';
 import '../models/error_model.dart';
+import '../services/app_notifier.dart';
 
 class DriverController extends GetxController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -78,12 +79,12 @@ class DriverController extends GetxController {
       // Gelen çağrıları dinle
       _listenForRides();
 
-      Get.snackbar("Çevrimiçi", "Artık yolculuk çağrıları alabilirsiniz.",
+      AppNotifier.snackbar("Çevrimiçi", "Artık yolculuk çağrıları alabilirsiniz.",
           backgroundColor: const Color(0xFF2C2C2C));
     } catch (e) {
       debugPrint("Çevrimiçi hatası: $e");
       await _errorLogger.log(ErrorModel(code: "DRIVER_ONLINE_FAIL", message: e.toString(), source: "DriverController.goOnline", occurredAt: DateTime.now()));
-      Get.snackbar("Hata", "Çevrimiçi olunamadı: $e");
+      AppNotifier.snackbar("Hata", "Çevrimiçi olunamadı: $e");
     }
   }
 
@@ -96,7 +97,7 @@ class DriverController extends GetxController {
       isOnline.value = false;
       _locationSubscription?.cancel();
       _rideSubscription?.cancel();
-      Get.snackbar("Çevrimdışı", "Artık yolculuk çağrıları almıyorsunuz.");
+      AppNotifier.snackbar("Çevrimdışı", "Artık yolculuk çağrıları almıyorsunuz.");
     } catch (e) {
       debugPrint("Çevrimdışı hatası: $e");
     }
@@ -129,7 +130,7 @@ class DriverController extends GetxController {
       });
       currentRide.value = incomingRide.value;
       incomingRide.value = null;
-      Get.snackbar("Kabul Edildi", "Hazırlık Süresi: 15 Dakika (Ön Rezervasyon)");
+      AppNotifier.snackbar("Kabul Edildi", "Hazırlık Süresi: 15 Dakika (Ön Rezervasyon)");
     } catch (e) {
       debugPrint("Kabul hatası: $e");
       await _errorLogger.log(ErrorModel(code: "RIDE_ACCEPT_FAIL", message: e.toString(), source: "DriverController.acceptRide", occurredAt: DateTime.now(), metadata: {"rideId": rideId}));
@@ -220,7 +221,7 @@ class DriverController extends GetxController {
 
       currentRide.value = null;
       await fetchDriverData(driver.value!.id); // Güncel cüzdan bakiyesini çek
-      Get.snackbar("Tamamlandı", "Yolculuk başarıyla tamamlandı. Komisyon tahakkuk ettirildi.");
+      AppNotifier.snackbar("Tamamlandı", "Yolculuk başarıyla tamamlandı. Komisyon tahakkuk ettirildi.");
     } catch (e) {
       debugPrint("Tamamlama hatası: $e");
       await _errorLogger.log(ErrorModel(code: "RIDE_COMPLETE_FAIL", message: e.toString(), source: "DriverController.completeRide", occurredAt: DateTime.now(), metadata: {"rideId": currentRide.value?.id}));
@@ -236,9 +237,9 @@ class DriverController extends GetxController {
         'iban': newIban,
       });
       await fetchDriverData(driver.value!.id); // Cihaza geri çek
-      Get.snackbar("Başarılı", "IBAN numaranız hukuki kayıtlarımıza işlendi.");
+      AppNotifier.snackbar("Başarılı", "IBAN numaranız hukuki kayıtlarımıza işlendi.");
     } catch (e) {
-      Get.snackbar("Hata", "IBAN güncellenemedi: $e");
+      AppNotifier.snackbar("Hata", "IBAN güncellenemedi: $e");
     } finally {
       isLoading.value = false;
     }
@@ -299,9 +300,9 @@ class DriverController extends GetxController {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      Get.snackbar("Başarılı", "Ceza bildirimi avukatlarımıza iletildi.");
+      AppNotifier.snackbar("Başarılı", "Ceza bildirimi avukatlarımıza iletildi.");
     } catch (e) {
-      Get.snackbar("Hata", "Bildirim gönderilemedi: $e");
+      AppNotifier.snackbar("Hata", "Bildirim gönderilemedi: $e");
     } finally {
       isLoading.value = false;
     }
@@ -342,9 +343,9 @@ class DriverController extends GetxController {
         'createdAt': FieldValue.serverTimestamp(),
       });
       await fetchPayouts();
-      Get.snackbar("Başarılı", "Talebiniz iletildi");
+      AppNotifier.snackbar("Başarılı", "Talebiniz iletildi");
     } catch (e) {
-      Get.snackbar("Hata", "Talep gönderilemedi");
+      AppNotifier.snackbar("Hata", "Talep gönderilemedi");
     } finally {
       isLoading.value = false;
     }

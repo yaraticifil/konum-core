@@ -4,6 +4,7 @@ import '../../controllers/auth_controller.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../legal/legal_texts.dart';
+import '../../services/app_notifier.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -26,12 +27,12 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
   void _login() {
     if (emailController.text.trim().isEmpty) {
-      Get.snackbar('Error', 'Please enter your email');
+      AppNotifier.snackbar('Error', 'Please enter your email');
       return;
     }
 
     if (passwordController.text.isEmpty) {
-      Get.snackbar('Error', 'Please enter your password');
+      AppNotifier.snackbar('Error', 'Please enter your password');
       return;
     }
 
