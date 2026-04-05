@@ -28,6 +28,7 @@ dependencies:
   google_maps_flutter: ^2.5.0
   geocoding: ^3.0.0
   flutter_polyline_points: ^2.1.0
+  crypto: ^3.0.7
 
 dev_dependencies:
   flutter_test:

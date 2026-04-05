@@ -40,7 +40,14 @@ class Ride {
   final double commission;
   final double driverNet;
   final double marketRate;
-  final String paymentMethod; // e.g. 'cash', 'transfer', or empty ' '
+
+  // New breakdown
+  final double legalFund;
+  final double balanceFund;
+  final double platformShare;
+
+  final String paymentMethod;
+  final String? legalHash;
 
   final DateTime createdAt;
   final DateTime? startedAt;
@@ -74,7 +81,11 @@ class Ride {
     this.commission = 0,
     this.driverNet = 0,
     this.marketRate = 1.0,
+    this.legalFund = 0,
+    this.balanceFund = 0,
+    this.platformShare = 0,
     this.paymentMethod = '',
+    this.legalHash,
     required this.createdAt,
     this.startedAt,
     this.completedAt,
@@ -110,7 +121,11 @@ class Ride {
       commission: (data['commission'] ?? 0).toDouble(),
       driverNet: (data['driverNet'] ?? 0).toDouble(),
       marketRate: (data['marketRate'] ?? 1.0).toDouble(),
+      legalFund: (data['legalFund'] ?? 0).toDouble(),
+      balanceFund: (data['balanceFund'] ?? 0).toDouble(),
+      platformShare: (data['platformShare'] ?? 0).toDouble(),
       paymentMethod: data['paymentMethod'] ?? '',
+      legalHash: data['legalHash'],
       createdAt: _parseDate(data['createdAt']),
       startedAt: data['startedAt'] != null ? _parseDate(data['startedAt']) : null,
       completedAt: data['completedAt'] != null ? _parseDate(data['completedAt']) : null,
@@ -183,7 +198,11 @@ class Ride {
       'commission': commission,
       'driverNet': driverNet,
       'marketRate': marketRate,
+      'legalFund': legalFund,
+      'balanceFund': balanceFund,
+      'platformShare': platformShare,
       'paymentMethod': paymentMethod,
+      'legalHash': legalHash,
       'createdAt': FieldValue.serverTimestamp(),
       'startedAt': startedAt?.toIso8601String(),
       'completedAt': completedAt?.toIso8601String(),

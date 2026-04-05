@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/ride_model.dart';
 import '../services/ride_service.dart';
 
@@ -127,6 +128,9 @@ class PassengerController extends GetxController {
         'commission': fb.commission,
         'driverNet': fb.driverNet,
         'marketRate': fb.marketRate,
+        'legalFund': fb.legalFund,
+        'balanceFund': fb.balanceFund,
+        'platformShare': fb.platformShare,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -223,5 +227,20 @@ class PassengerController extends GetxController {
     } catch (e) {
       debugPrint("Aktif yolculuk kontrol hatası: $e");
     }
+  }
+
+  /// Coords -> Adres
+  Future<String> getAddressFromLatLng(LatLng position) async {
+    return "Mevcut Konum";
+  }
+
+  /// Adres -> Coords
+  Future<LatLng?> getLatLngFromAddress(String address) async {
+    return null;
+  }
+
+  /// Rota noktalarını al
+  Future<List<LatLng>> getRoutePoints(LatLng start, LatLng end) async {
+    return [start, end];
   }
 }

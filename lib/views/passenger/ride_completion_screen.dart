@@ -225,7 +225,7 @@ class _RideCompletionScreenState extends State<RideCompletionScreen> {
               ),
             ),
             if (isSelected) 
-               const Icon(Icons.check_circle_rounded, color: _monsieurGold, size: 20),
+               Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 20),
           ],
         ),
       ),

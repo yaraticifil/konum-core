@@ -9,11 +9,11 @@ import '../models/ride_model.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
+import '../services/ride_service.dart';
 
 class DriverController extends GetxController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // UI'da çarkın dönmesi ve butonun kilitlenmesi için gerekli
   final RxBool isLoading = false.obs;
   final RxBool isOnline = false.obs;
 
@@ -32,7 +32,6 @@ class DriverController extends GetxController {
     super.onClose();
   }
 
-  /// Çevrimiçi / çevrimdışı geçiş
   Future<void> goOnline() async {
     if (driver.value == null) return;
     try {
@@ -51,12 +50,11 @@ class DriverController extends GetxController {
 
       isOnline.value = true;
 
-      // Konumu periyodik güncelle
       _locationSubscription?.cancel();
       _locationSubscription = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
-          distanceFilter: 50, // 50 metre hareket edince güncelle
+          distanceFilter: 50,
         ),
       ).listen((position) {
         _firestore.collection('driver_locations').doc(driver.value!.id).update({
@@ -66,7 +64,6 @@ class DriverController extends GetxController {
         });
       });
 
-      // Gelen çağrıları dinle
       _listenForRides();
 
       Get.snackbar("Çevrimiçi", "Artık yolculuk çağrıları alabilirsiniz.",
@@ -92,7 +89,6 @@ class DriverController extends GetxController {
     }
   }
 
-  /// Gelen yolculuk çağrılarını dinle
   void _listenForRides() {
     if (driver.value == null) return;
     _rideSubscription?.cancel();
@@ -108,11 +104,11 @@ class DriverController extends GetxController {
     });
   }
 
-  /// Çağrıyı kabul et
   Future<void> acceptRide(String rideId) async {
     try {
       await _firestore.collection('rides').doc(rideId).update({
         'status': 'driver_arriving',
+        'scheduledPickupTime': Timestamp.fromDate(DateTime.now().add(const Duration(minutes: 15))), // Legal requirement: timestamping for T+15 proof
       });
       currentRide.value = incomingRide.value;
       incomingRide.value = null;
@@ -122,7 +118,6 @@ class DriverController extends GetxController {
     }
   }
 
-  /// Çağrıyı reddet
   Future<void> rejectRide(String rideId) async {
     try {
       await _firestore.collection('rides').doc(rideId).update({
@@ -137,13 +132,8 @@ class DriverController extends GetxController {
     }
   }
 
-  /// Yolcuya vardım
-  Future<void> arrivedAtPickup() async {
-    if (currentRide.value == null) return;
-    // Durumu güncellemiyoruz ama UI'da gösteriyoruz
-  }
+  Future<void> arrivedAtPickup() async {}
 
-  /// Yolculuğu başlat
   Future<void> startRide() async {
     if (currentRide.value == null) return;
     try {
@@ -156,22 +146,18 @@ class DriverController extends GetxController {
     }
   }
 
-  /// Yolculuğu tamamla
   Future<void> completeRide() async {
     if (currentRide.value == null) return;
     try {
       final ride = currentRide.value!;
-      
-      // Şoförden platform komisyonunu cari hesap (dijital cüzdan) üzerinden düşme işlemi.
-      // Sadece asıl hesaptan (walletBalance) komisyon eksiltilir.
       final newBalance = (driver.value?.walletBalance ?? 0) - ride.commission;
 
       await _firestore.collection('rides').doc(ride.id).update({
         'status': 'completed',
+        'legalHash': RideService().generateLegalHash(ride.id, ride.driverId ?? '', ride.passengerId, DateTime.now().toIso8601String()),
         'completedAt': FieldValue.serverTimestamp(),
       });
 
-      // Bakiye düşümü (cari hesap mantığı, sadece borç kaydı olarak cüzdandan eksiltilir)
       if (ride.commission > 0 && driver.value != null) {
          await _firestore.collection('drivers').doc(driver.value!.id).update({
            'walletBalance': newBalance,
@@ -179,14 +165,13 @@ class DriverController extends GetxController {
       }
 
       currentRide.value = null;
-      await fetchDriverData(driver.value!.id); // Güncel cüzdan bakiyesini çek
-      Get.snackbar("Tamamlandı", "Yolculuk başarıyla tamamlandı. Komisyon tahakkuk ettirildi.");
+      await fetchDriverData(driver.value!.id);
+      Get.snackbar("Tamamlandı", "Yolculuk başarıyla tamamlandı.");
     } catch (e) {
       debugPrint("Tamamlama hatası: $e");
     }
   }
 
-  /// IBAN Güncelleme (Dijital Kimlikten vb.)
   Future<void> updateIban(String newIban) async {
     if (driver.value == null) return;
     isLoading.value = true;
@@ -194,8 +179,8 @@ class DriverController extends GetxController {
       await _firestore.collection('drivers').doc(driver.value!.id).update({
         'iban': newIban,
       });
-      await fetchDriverData(driver.value!.id); // Cihaza geri çek
-      Get.snackbar("Başarılı", "IBAN numaranız hukuki kayıtlarımıza işlendi.");
+      await fetchDriverData(driver.value!.id);
+      Get.snackbar("Başarılı", "IBAN numaranız kaydedildi.");
     } catch (e) {
       Get.snackbar("Hata", "IBAN güncellenemedi: $e");
     } finally {
@@ -203,18 +188,13 @@ class DriverController extends GetxController {
     }
   }
 
-  // Sürücü verilerini çeken metod
   Future<void> fetchDriverData(String driverId) async {
     isLoading.value = true;
     try {
-      final doc = await _firestore
-          .collection('drivers')
-          .doc(driverId)
-          .get();
+      final doc = await _firestore.collection('drivers').doc(driverId).get();
       if (doc.exists) {
         driver.value = Driver.fromFirestore(doc);
       }
-
     } catch (e) {
       debugPrint("Sürücü hatası: $e");
     } finally {
@@ -234,19 +214,14 @@ class DriverController extends GetxController {
       final String fileName = '${DateTime.now().millisecondsSinceEpoch}${p.extension(image.path)}';
       final Reference storageRef = FirebaseStorage.instance.ref().child('penalties/$driverId/$fileName');
 
-      // Upload file
       final String contentType = p.extension(image.path).replaceAll('.', '');
       final SettableMetadata metadata = SettableMetadata(contentType: 'image/$contentType');
       
-      final UploadTask uploadTask;
       final byteData = await image.readAsBytes();
-      uploadTask = storageRef.putData(byteData, metadata);
-
-      
-      final TaskSnapshot snapshot = await uploadTask;
+      final uploadTask = storageRef.putData(byteData, metadata);
+      final snapshot = await uploadTask;
       final String downloadUrl = await snapshot.ref.getDownloadURL();
 
-      // Save to Firestore
       await _firestore.collection('penalties').add({
         'driverId': driverId,
         'driverName': driver.value?.name ?? 'Anonim',
@@ -258,7 +233,7 @@ class DriverController extends GetxController {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      Get.snackbar("Başarılı", "Ceza bildirimi avukatlarımıza iletildi.");
+      Get.snackbar("Başarılı", "Ceza bildirimi iletildi.");
     } catch (e) {
       Get.snackbar("Hata", "Bildirim gönderilemedi: $e");
     } finally {

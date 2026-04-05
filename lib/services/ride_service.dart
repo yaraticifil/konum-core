@@ -1,3 +1,5 @@
+import 'package:crypto/crypto.dart';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
@@ -57,6 +59,9 @@ class FareBreakdown {
   final double discount;            // Kampanya/indirim
   final double grossTotal;          // Brüt toplam araç bedeli
   final double commission;          // Platform komisyonu (%12)
+  final double legalFund;           // Hukuk Fonu (%4)
+  final double balanceFund;         // Denge Fonu (%3)
+  final double platformShare;       // Platform Payı (%5)
   final double driverNet;           // Sürücü net kazanç
   final double perPersonFee;        // Kişi başı bedel
   final int personCount;            // Kişi sayısı
@@ -75,6 +80,9 @@ class FareBreakdown {
     required this.grossTotal,
     required this.commission,
     required this.driverNet,
+    required this.legalFund,
+    required this.balanceFund,
+    required this.platformShare,
     required this.perPersonFee,
     required this.personCount,
     required this.distanceKm,
@@ -94,6 +102,9 @@ class FareBreakdown {
       'discount': discount,
       'grossTotal': grossTotal,
       'commission': commission,
+      'legalFund': legalFund,
+      'balanceFund': balanceFund,
+      'platformShare': platformShare,
       'driverNet': driverNet,
       'perPersonFee': perPersonFee,
       'personCount': personCount,
@@ -115,6 +126,9 @@ class FareBreakdown {
       discount: (map['discount'] ?? 0).toDouble(),
       grossTotal: (map['grossTotal'] ?? 0).toDouble(),
       commission: (map['commission'] ?? 0).toDouble(),
+      legalFund: (map['legalFund'] ?? 0).toDouble(),
+      balanceFund: (map['balanceFund'] ?? 0).toDouble(),
+      platformShare: (map['platformShare'] ?? 0).toDouble(),
       driverNet: (map['driverNet'] ?? 0).toDouble(),
       perPersonFee: (map['perPersonFee'] ?? 0).toDouble(),
       personCount: map['personCount'] ?? 1,
@@ -145,8 +159,6 @@ class RideService {
   static const double maxMarketRate = 1.30;         // Max piyasa katsayısı
 
   /// ─── ANA HESAPLAMA MOTORU ───
-  /// Kullanıcıya gösterilen: Kişi Başı ≈ 50 TL + (Mesafe × 6 TL)
-  /// Arka plan: segment × mesafe × birim + açılış + piyasa ayarı - kampanya
   FareBreakdown calculateFare({
     required double distanceKm,
     required VehicleSegment segment,
@@ -196,6 +208,10 @@ class RideService {
     double commission = grossTotal * commissionRate;
     double driverNet = grossTotal - commission;
 
+    double legalFund = grossTotal * 0.04;
+    double balanceFund = grossTotal * 0.03;
+    double platformShare = grossTotal * 0.05;
+
     // Tahmini süre (ortalama 30 km/h şehir içi)
     int estimatedMinutes = (distanceKm / 30 * 60).ceil();
     if (estimatedMinutes < 5) estimatedMinutes = 5;
@@ -212,6 +228,9 @@ class RideService {
       grossTotal: _round(grossTotal),
       commission: _round(commission),
       driverNet: _round(driverNet),
+      legalFund: _round(legalFund),
+      balanceFund: _round(balanceFund),
+      platformShare: _round(platformShare),
       perPersonFee: _round(perPersonFee),
       personCount: personCount,
       distanceKm: distanceKm,
@@ -236,8 +255,7 @@ class RideService {
     return earthRadius * c;
   }
 
-  /// KONUM Intelligence Engine: Çok faktörlü akıllı puanlama (Heuristic Scoring)
-  /// Sadece en yakını değil; en iyi, en yakın ve en sadık sürücüyü bulur.
+  /// KONUM Intelligence Engine
   Future<List<Map<String, dynamic>>> evaluateAndScoreDrivers(
     double lat, double lng, {
     double radiusKm = 5.0,
@@ -258,21 +276,13 @@ class RideService {
         double distance = calculateDistance(lat, lng, driverLat, driverLng);
 
         if (distance <= radiusKm) {
-          // --- Akıllı Puanlama Algoritması (Heuristic Core) ---
-          
-          // 1. Proximity Puanı (Max 40 Puan)
-          // 0 km = 40 Puan, 5 km = 0 Puan
           double proximityScore = 40.0 * (1 - (distance / radiusKm));
           if (proximityScore < 0) proximityScore = 0;
 
-          // 2. Kalite Puanı (Max 35 Puan)
-          // Veritabanında rating yoksa varsayılan 4.8 kabul ediyoruz.
           double rating = (data['rating'] ?? 4.8).toDouble();
           double qualityScore = (rating / 5.0) * 35.0;
 
-          // 3. Sadakat Puanı (Max 25 Puan)
-          // Başarılı tamamlanan yolculuk sayısı. 100 yolculukta tavan yapar.
-          int completedRides = data['completedRides'] ?? 25; // Yoksa 25 sayalım
+          int completedRides = data['completedRides'] ?? 25;
           double loyaltyScore = (completedRides / 100.0) * 25.0;
           if (loyaltyScore > 25.0) loyaltyScore = 25.0;
 
@@ -291,7 +301,6 @@ class RideService {
         }
       }
       
-      // En yüksek Intelligence Score'a sahip sürücü en üste gelir.
       scoredDrivers.sort((a, b) =>
           (b['intelligenceScore'] as double).compareTo(a['intelligenceScore'] as double));
           
@@ -302,7 +311,6 @@ class RideService {
     }
   }
 
-  /// Akıllı algoritmaya göre tespit edilen en iyi sürücüyü eşleştir
   Future<String?> findAndMatchDriver(
     String rideId, double pickupLat, double pickupLng,
   ) async {
@@ -316,15 +324,19 @@ class RideService {
       'driverId': driverId,
       'driverName': bestMatch['name'],
       'driverPhone': bestMatch['phone'],
-      'aiMatchScore': bestMatch['intelligenceScore'], // Eşleşme başarısını kaydet
+      'aiMatchScore': bestMatch['intelligenceScore'],
       'status': 'matched',
     });
 
     return driverId;
   }
 
-  // ── YARDIMCI ──
+  String generateLegalHash(String rideId, String driverId, String passengerId, String pickupTime) {
+    final data = "$rideId$driverId$passengerId${pickupTime}TBK299";
+    return sha256.convert(utf8.encode(data)).toString();
+  }
 
+  // ── YARDIMCI ──
   double _round(double v) => (v * 100).roundToDouble() / 100;
   double _toRadians(double d) => d * pi / 180;
 

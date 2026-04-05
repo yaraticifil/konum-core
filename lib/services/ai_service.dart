@@ -21,7 +21,7 @@ class AIService {
   Future<String> askQuestion(String prompt) async {
     if (_chat == null) {
       // Sizin sağladığınız özel yetkili Vertex/GenAI Anahtarı:
-      initialize('YOUR_API_KEY_HERE'); 
+      initialize(const String.fromEnvironment('GEMINI_API_KEY', defaultValue: 'YOUR_API_KEY_HERE'));
     }
     
     try {
