@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/ride_model.dart';
 import '../../services/ride_service.dart';
 
@@ -81,7 +82,9 @@ class RideDetailScreen extends StatelessWidget {
                   _financialRow('Platform Komisyonu (%12)', -ride.commission, isNeg: true),
                   _financialRow('Kampanya Katkısı (Platform)', 0, note: 'Yok'),
                   _financialRow('Kampanya Katkısı (Sürücü)', 0, note: 'Yok'),
-                  _financialRow('Vergi / Yasal Kesinti', 0, note: 'Mevzuata göre'),
+                  _financialRow('%4 Hukuk Fonu', -(ride.grossTotal * 0.04), isNeg: true),
+                  _financialRow('%3 Sektörel Denge', -(ride.grossTotal * 0.03), isNeg: true),
+                  _financialRow('%5 Platform Kârı', -(ride.grossTotal * 0.05), isNeg: true),
                   _financialRow('İptal / İade Düzeltmesi', 0, note: 'Yok'),
                   const Divider(color: Color(0xFFFFD700), height: 20),
                   Row(
@@ -125,10 +128,14 @@ class RideDetailScreen extends StatelessWidget {
 
             // ── BELGE VE KAYIT ──
             _card('BELGE VE KAYIT', [
-              _actionButton(Icons.receipt_long, 'E-fatura görüntüle', () => Get.snackbar("Bilgi", "E-fatura henüz entegre edilmedi.")),
-              _actionButton(Icons.description, 'Yolculuk sözleşmesi özeti', () => Get.snackbar("Bilgi", "Sözleşme özeti henüz entegre edilmedi.")),
-              _actionButton(Icons.map, 'Rota kayıt özeti', () => Get.snackbar("Bilgi", "Rota kaydı henüz entegre edilmedi.")),
-              _actionButton(Icons.support_agent, 'Destek talebi oluştur', () => Get.snackbar("Bilgi", "Destek sistemi henüz entegre edilmedi.")),
+              _actionButton(Icons.receipt_long, 'E-fatura görüntüle', () async {
+                final invoiceUrl = ride.invoiceUrl.isNotEmpty ? ride.invoiceUrl : 'https://invoice.konum.app/e-arsiv/mock';
+                await launchUrl(Uri.parse(invoiceUrl), mode: LaunchMode.externalApplication);
+              }),
+              _actionButton(Icons.description, 'Yolculuk sözleşmesi özeti', () => Get.toNamed('/legal-defense', arguments: ride)),
+              _actionButton(Icons.map, 'Rota kayıt özeti', () => Get.defaultDialog(title: 'Rota Kayıt Özeti', middleText: 'Pickup: ${ride.pickupAddress}\nVarış: ${ride.destAddress}')),
+              _actionButton(Icons.support_agent, 'Hukuk Merkezi (Avukat)', () => Get.defaultDialog(title: 'Hukuk Merkezi', middleText: '+90 850 000 29 90')),
+              _actionButton(Icons.gpp_maybe, 'HUKUKİ DENETİM', () => Get.toNamed('/legal-defense', arguments: ride)),
             ]),
             const SizedBox(height: 30),
           ],

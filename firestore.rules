@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    match /driver_locations/{driverId} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(driverId);
+      allow delete: if false;
+    }
+
+    match /rides/{rideId} {
+      allow create: if isSignedIn() && request.resource.data.passengerId == request.auth.uid;
+      allow read: if isSignedIn() && (
+        resource.data.passengerId == request.auth.uid ||
+        resource.data.driverId == request.auth.uid
+      );
+
+      // legalHash once set cannot be modified (delil koruması)
+      allow update: if isSignedIn() && (
+        resource.data.passengerId == request.auth.uid ||
+        resource.data.driverId == request.auth.uid
+      )
+      && (
+        !("legalHash" in resource.data)
+        || request.resource.data.legalHash == resource.data.legalHash
+      );
+
+      allow delete: if false;
+    }
+
+    match /system_logs/{logId} {
+      allow create: if isSignedIn();
+      allow read: if false;
+      allow update, delete: if false;
+    }
+
+    match /invoices/{invoiceId} {
+      allow create: if isSignedIn();
+      allow read: if isSignedIn() && (
+        resource.data.passengerId == request.auth.uid ||
+        resource.data.driverId == request.auth.uid
+      );
+      allow update, delete: if false;
+    }
+
+    match /hub_owners/{ownerId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+  }
+}

@@ -4,6 +4,7 @@ import '../services/ride_service.dart';
 enum RideStatus {
   searching,
   matched,
+  preReserved,
   driverArriving,
   inProgress,
   completed,
@@ -30,7 +31,6 @@ class Ride {
   final int personCount;
   final double perPersonFee;
 
-  // Ücret kırılımı
   final double openingFee;
   final double distanceFee;
   final double segmentSurcharge;
@@ -40,11 +40,14 @@ class Ride {
   final double commission;
   final double driverNet;
   final double marketRate;
-  final String paymentMethod; // e.g. 'cash', 'transfer', or empty ' '
+  final String paymentMethod;
 
   final DateTime createdAt;
+  final DateTime? scheduledPickupTime;
   final DateTime? startedAt;
   final DateTime? completedAt;
+  final String legalHash;
+  final String invoiceUrl;
 
   Ride({
     required this.id,
@@ -76,8 +79,11 @@ class Ride {
     this.marketRate = 1.0,
     this.paymentMethod = '',
     required this.createdAt,
+    this.scheduledPickupTime,
     this.startedAt,
     this.completedAt,
+    this.legalHash = '',
+    this.invoiceUrl = '',
   });
 
   factory Ride.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -112,8 +118,11 @@ class Ride {
       marketRate: (data['marketRate'] ?? 1.0).toDouble(),
       paymentMethod: data['paymentMethod'] ?? '',
       createdAt: _parseDate(data['createdAt']),
+      scheduledPickupTime: data['scheduledPickupTime'] != null ? _parseDate(data['scheduledPickupTime']) : null,
       startedAt: data['startedAt'] != null ? _parseDate(data['startedAt']) : null,
       completedAt: data['completedAt'] != null ? _parseDate(data['completedAt']) : null,
+      legalHash: data['legalHash'] ?? '',
+      invoiceUrl: data['invoiceUrl'] ?? '',
     );
   }
 
@@ -126,6 +135,7 @@ class Ride {
   static RideStatus _parseStatus(String? status) {
     switch (status) {
       case 'matched': return RideStatus.matched;
+      case 'pre_reserved': return RideStatus.preReserved;
       case 'driver_arriving': return RideStatus.driverArriving;
       case 'in_progress': return RideStatus.inProgress;
       case 'completed': return RideStatus.completed;
@@ -146,6 +156,7 @@ class Ride {
     switch (status) {
       case RideStatus.searching: return 'Sürücü Aranıyor';
       case RideStatus.matched: return 'Sürücü Bulundu';
+      case RideStatus.preReserved: return 'Ön Rezervasyon';
       case RideStatus.driverArriving: return 'Sürücü Yolda';
       case RideStatus.inProgress: return 'Yolculuk Devam Ediyor';
       case RideStatus.completed: return 'Tamamlandı';
@@ -184,14 +195,19 @@ class Ride {
       'driverNet': driverNet,
       'marketRate': marketRate,
       'paymentMethod': paymentMethod,
+      'legalHash': legalHash,
+      'invoiceUrl': invoiceUrl,
       'createdAt': FieldValue.serverTimestamp(),
-      'startedAt': startedAt?.toIso8601String(),
-      'completedAt': completedAt?.toIso8601String(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'scheduledPickupTime': scheduledPickupTime != null ? Timestamp.fromDate(scheduledPickupTime!) : null,
+      'startedAt': startedAt != null ? Timestamp.fromDate(startedAt!) : null,
+      'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
     };
   }
 
   static String _statusToString(RideStatus s) {
     switch (s) {
+      case RideStatus.preReserved: return 'pre_reserved';
       case RideStatus.driverArriving: return 'driver_arriving';
       case RideStatus.inProgress: return 'in_progress';
       default: return s.name;
