@@ -1,0 +1,60 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+enum DriverStatus { pending, approved, rejected, suspended }
+
+class Driver {
+  final String id;
+  final String name;
+  final String phone;
+  final DriverStatus status;
+  final DateTime createdAt;
+
+  // Add uid getter as an alias for id to fix UI references
+  String get uid => id;
+
+  Driver({
+    required this.id,
+    required this.name,
+    required this.phone,
+    required this.status,
+    required this.createdAt,
+  });
+
+  factory Driver.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data()!;
+    return Driver(
+      id: doc.id,
+      name: data['name'] ?? '',
+      phone: data['phone'] ?? '',
+      status: _parseStatus(data['status']),
+      createdAt: data['createdAt'] != null ? DateTime.parse(data['createdAt']) : DateTime.now(),
+    );
+  }
+
+  static DriverStatus _parseStatus(String? status) {
+    switch (status) {
+      case 'approved': return DriverStatus.approved;
+      case 'rejected': return DriverStatus.rejected;
+      case 'suspended': return DriverStatus.suspended;
+      default: return DriverStatus.pending;
+    }
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'phone': phone,
+      'status': status.toString().split('.').last,
+      'createdAt': createdAt.toIso8601String(),
+    };
+  }
+
+  String get statusText {
+    switch (status) {
+      case DriverStatus.approved: return 'Onaylandı';
+      case DriverStatus.rejected: return 'Reddedildi';
+      case DriverStatus.suspended: return 'Askıya Alındı';
+      default: return 'Beklemede';
+    }
+  }
+}
