@@ -1,14 +1,15 @@
+import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../../controllers/auth_controller.dart';
 import '../../controllers/admin_controller.dart';
 import '../../models/driver_model.dart';
-import '../../models/ride_model.dart';
-import '../../models/payout_model.dart';
 import '../../utils/app_colors.dart';
-import '../../legal/legal_texts.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -17,28 +18,85 @@ class AdminDashboardScreen extends StatefulWidget {
   State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
 }
 
-class _AdminDashboardScreenState extends State<AdminDashboardScreen> with SingleTickerProviderStateMixin {
+class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   final AuthController authController = Get.find<AuthController>();
   final AdminController adminController = Get.find<AdminController>();
-  late TabController _tabController;
+
+  final Completer<GoogleMapController> _mapController = Completer();
+  
+  // Aristokrat Renk Paleti
+  static const Color _richBlack = Color(0xFF0A0A0A);
+  static const Color _deepAnthracite = Color(0xFF121212);
+  static const Color _monsieurGold = Color(0xFFD4AF37);
+  static const Color _bronzeAccent = Color(0xFFCD7F32);
+  static const Color _alertRed = Color(0xFFE74C3C);
+
+  // Istanbul / Center Map
+  static const CameraPosition _initialCamera = CameraPosition(
+    target: LatLng(41.0082, 28.9784), // Istanbul default
+    zoom: 11.5,
+  );
+
+  final String _darkMapStyle = '''
+  [
+    {
+      "elementType": "geometry",
+      "stylers": [{"color": "#212121"}]
+    },
+    {
+      "elementType": "labels.icon",
+      "stylers": [{"visibility": "off"}]
+    },
+    {
+      "elementType": "labels.text.fill",
+      "stylers": [{"color": "#757575"}]
+    },
+    {
+      "elementType": "labels.text.stroke",
+      "stylers": [{"color": "#212121"}]
+    },
+    {
+      "featureType": "administrative",
+      "elementType": "geometry",
+      "stylers": [{"color": "#757575"}]
+    },
+    {
+      "featureType": "poi",
+      "elementType": "geometry",
+      "stylers": [{"color": "#181818"}]
+    },
+    {
+      "featureType": "road",
+      "elementType": "geometry.fill",
+      "stylers": [{"color": "#2c2c2c"}]
+    },
+    {
+      "featureType": "road.highway",
+      "elementType": "geometry",
+      "stylers": [{"color": "#3c3c3c"}]
+    },
+    {
+      "featureType": "water",
+      "elementType": "geometry",
+      "stylers": [{"color": "#000000"}]
+    }
+  ]
+  ''';
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
     _checkAdminAccess();
   }
 
   void _checkAdminAccess() {
-    // Statik e-posta yerine AuthController'dan gelen dinamik rolü kontrol et
     if (authController.userRole.value != 'admin') {
       Get.snackbar(
-        'Erişim Reddedildi',
-        'Bu sayfaya erişim yetkiniz bulunmamaktadır.',
-        backgroundColor: AppColors.error,
+        'KRİTİK UYARI',
+        'Strateji Odasına giriş yetkiniz bulunmamaktadır.',
+        backgroundColor: _alertRed,
         colorText: Colors.white,
       );
-      // Eğer kullanıcı admin değilse ana sayfaya yönlendir
       Future.delayed(const Duration(milliseconds: 100), () {
         Get.offAllNamed('/role-selection');
       });
@@ -46,200 +104,361 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
   }
 
   @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(
-          'YÖNETİM MERKEZİ',
-          style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5),
+      backgroundColor: _richBlack,
+      extendBodyBehindAppBar: true,
+      appBar: _buildCommandAppBar(),
+      body: Stack(
+        children: [
+          // 1. Katman: Canlı Operasyon Haritası
+          _buildLiveOperationsMap(),
+          
+          // 2. Katman: Glassmorphism Strateji Odası / Paneller
+          _buildDraggableStrategyPanel(),
+        ],
+      ),
+    );
+  }
+
+  AppBar _buildCommandAppBar() {
+    return AppBar(
+      backgroundColor: Colors.black.withValues(alpha: 0.6),
+      elevation: 0,
+      centerTitle: true,
+      flexibleSpace: ClipRRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(color: Colors.transparent),
         ),
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppColors.primary,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textDisabled,
-          labelStyle: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.bold, fontSize: 11),
-          isScrollable: true,
-          tabs: const [
-            Tab(text: 'PANEL'),
-            Tab(text: 'SÜRÜCÜLER'),
-            Tab(text: 'ÖDEMELER'),
-            Tab(text: 'YOLCULUKLAR'),
-            Tab(text: 'CEZALAR'),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh_rounded, color: AppColors.primary),
-
-            onPressed: () {
-              adminController.fetchDrivers();
-              adminController.fetchPayouts();
-              adminController.fetchRides();
-            },
-          ),
-          IconButton(
-            icon: Icon(Icons.logout_rounded, color: AppColors.primary),
-
-            onPressed: () => authController.logout(),
-          ),
-        ],
       ),
-      body: TabBarView(
-        controller: _tabController,
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _buildOverviewTab(),
-          _buildDriversTab(),
-          _buildPayoutsTab(),
-          _buildRidesTab(),
-          _buildPenaltiesTab(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOverviewTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionHeader('Sistem Özeti', 'Canlı veriler ve performans'),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.cardBg,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.divider),
-            ),
-            child: Text(
-              LegalTexts.adminDashboardNotice,
-              style: GoogleFonts.publicSans(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
-            ),
-          ),
-          const SizedBox(height: 20),
-          _buildStatsGrid(),
-          const SizedBox(height: 30),
-          _sectionHeader('Finansal Analiz', 'Hizmet bazlı kazanç dağılımı'),
-          const SizedBox(height: 15),
-          _buildSegmentBar(),
-          const SizedBox(height: 30),
-          _sectionHeader('Son Aktiviteler', 'Sistemdeki güncel hareketler'),
-          const SizedBox(height: 15),
-          _buildRecentActivity(),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionHeader(String title, String subtitle) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: GoogleFonts.spaceGrotesk(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.primary)),
-        Text(subtitle, style: GoogleFonts.publicSans(fontSize: 12, color: AppColors.textSecondary)),
-      ],
-    );
-  }
-
-  Widget _buildStatsGrid() {
-    return Obx(() => GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.4,
-      children: [
-        _buildStatCard('Sürücüler', adminController.drivers.length.toString(), Icons.people_rounded, AppColors.info),
-        _buildStatCard('Bekleyen', adminController.getDriversCountByStatus(DriverStatus.pending).toString(), Icons.pending_rounded, AppColors.warning),
-        _buildStatCard('Komisyon', '₺${adminController.totalCommission.toStringAsFixed(0)}', Icons.account_balance_rounded, AppColors.primary),
-        _buildStatCard('Brüt Ciro', '₺${adminController.totalGrossRevenue.toStringAsFixed(0)}', Icons.trending_up_rounded, AppColors.success),
-      ],
-    ));
-  }
-
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.cardBg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Icon(icon, color: color, size: 24),
+          const Icon(Icons.satellite_alt_rounded, color: _monsieurGold, size: 20),
+          const SizedBox(width: 10),
           Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(value, style: GoogleFonts.spaceGrotesk(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-              Text(title, style: GoogleFonts.publicSans(fontSize: 11, color: AppColors.textSecondary)),
+              Text(
+                'DİJİTAL HAREKAT MERKEZİ',
+                style: GoogleFonts.spaceGrotesk(
+                  fontWeight: FontWeight.w900,
+                  color: _monsieurGold,
+                  letterSpacing: 2.5,
+                  fontSize: 14,
+                ),
+              ),
+              Text(
+                'CANLI OPERASYON RADARI',
+                style: GoogleFonts.publicSans(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[400],
+                  letterSpacing: 1.5,
+                  fontSize: 9,
+                ),
+              ),
             ],
           ),
         ],
       ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.exit_to_app_rounded, color: _alertRed),
+          onPressed: () => authController.logout(),
+        ),
+      ],
     );
   }
 
-  Widget _buildSegmentBar() {
+  Widget _buildLiveOperationsMap() {
+    return StreamBuilder<QuerySnapshot>(
+      // Yalnızca aktif 'konum_app' araçlarını canlı çekiyoruz
+      stream: FirebaseFirestore.instance
+          .collection('driver_locations')
+          .where('isOnline', isEqualTo: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        Set<Marker> markers = {};
+
+        if (snapshot.hasData) {
+          final docs = snapshot.data!.docs;
+          for (var doc in docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final lat = (data['lat'] ?? 0).toDouble();
+            final lng = (data['lng'] ?? 0).toDouble();
+
+            markers.add(
+              Marker(
+                markerId: MarkerId(doc.id),
+                position: LatLng(lat, lng),
+                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange), // Gold'a yakın
+                infoWindow: InfoWindow(title: data['name'] ?? 'AKTİF ARAÇ'),
+              ),
+            );
+          }
+        }
+
+        return GoogleMap(
+          initialCameraPosition: _initialCamera,
+          onMapCreated: (controller) {
+            controller.setMapStyle(_darkMapStyle);
+            if (!_mapController.isCompleted) {
+              _mapController.complete(controller);
+            }
+          },
+          markers: markers,
+          myLocationEnabled: false,
+          zoomControlsEnabled: false,
+          mapToolbarEnabled: false,
+          compassEnabled: false,
+        );
+      },
+    );
+  }
+
+  Widget _buildDraggableStrategyPanel() {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.45,
+      minChildSize: 0.15,
+      maxChildSize: 0.90,
+      builder: (context, scrollController) {
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: Container(
+              decoration: BoxDecoration(
+                color: _richBlack.withValues(alpha: 0.8),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+                border: Border(top: BorderSide(color: _monsieurGold.withValues(alpha: 0.3), width: 1)),
+              ),
+              child: SingleChildScrollView(
+                controller: scrollController,
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Sürükleme Çubuğu
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+
+                    _buildSectionTitle('FİNANSAL MONİTÖR', Icons.account_balance_rounded),
+                    const SizedBox(height: 15),
+                    _buildFinancialMonitor(),
+
+                    const SizedBox(height: 30),
+                    _buildSectionTitle('OPERASYONEL OTORİTE (THE GAVEL)', Icons.gavel_rounded),
+                    const SizedBox(height: 15),
+                    _buildDriverAuthorityList(),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSectionTitle(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, color: _monsieurGold, size: 18),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
+            letterSpacing: 2,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFinancialMonitor() {
     return Obx(() {
-      final stats = adminController.segmentDistribution;
-      if (stats.isEmpty) return const SizedBox.shrink();
       return Container(
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: AppColors.cardBg, borderRadius: BorderRadius.circular(20)),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: stats.entries.map((e) => Column(
-            children: [
-              Text(e.value.toString(), style: GoogleFonts.spaceGrotesk(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-              Text(e.key.toUpperCase(), style: GoogleFonts.publicSans(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.bold)),
-            ],
-          )).toList(),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _monsieurGold.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildFinanceStat('TOPLAM CİRO', '₺${adminController.totalGrossRevenue.toStringAsFixed(0)}', Colors.white),
+                _buildFinanceStat('KOMİSYON', '₺${adminController.totalCommission.toStringAsFixed(0)}', _monsieurGold),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 15),
+              child: Divider(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildFinanceStat('DEVLET VERGİSİ (KDV+STOPAJ)', '- ₺${adminController.totalTaxDeduction.toStringAsFixed(0)}', _alertRed),
+                _buildFinanceStat('PLATFORM NET KAR', '₺${adminController.totalNetProfit.toStringAsFixed(0)}', Colors.greenAccent),
+              ],
+            ),
+          ],
         ),
       );
     });
   }
 
-  Widget _buildRecentActivity() {
+  Widget _buildFinanceStat(String label, String value, Color valueColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.publicSans(
+            fontSize: 9,
+            color: Colors.grey[500],
+            letterSpacing: 1.5,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          value,
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 18,
+            color: valueColor,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDriverAuthorityList() {
     return Obx(() {
-      final recent = adminController.drivers.take(5).toList();
+      final drivers = adminController.drivers;
+      if (drivers.isEmpty) {
+        return const Center(
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Text('Sistemde sürücü bulunmuyor.', style: TextStyle(color: Colors.white54)),
+          ),
+        );
+      }
+
       return ListView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: recent.length,
+        itemCount: drivers.length,
         itemBuilder: (context, index) {
-          final driver = recent[index];
+          final driver = drivers[index];
           return Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: AppColors.cardBg, borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.02),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+            ),
             child: Row(
               children: [
-                CircleAvatar(backgroundColor: AppColors.primary.withValues(alpha: 0.1), child: Icon(Icons.person_rounded, color: AppColors.primary, size: 20)),
-
-                const SizedBox(width: 12),
-                Expanded(child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(driver.name, style: GoogleFonts.publicSans(fontWeight: FontWeight.bold, color: Colors.white)),
-                    Text('Yeni Sürücü Kaydı', style: GoogleFonts.publicSans(fontSize: 11, color: AppColors.textSecondary)),
-                  ],
-                )),
-                Text(DateFormat('HH:mm').format(driver.createdAt), style: GoogleFonts.publicSans(fontSize: 10, color: AppColors.textDisabled)),
+                // Profil Sembolü
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: _monsieurGold.withValues(alpha: 0.5)),
+                  ),
+                  child: const Center(child: Icon(Icons.person, color: _monsieurGold, size: 20)),
+                ),
+                const SizedBox(width: 15),
+                
+                // Kimlik
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        driver.name.toUpperCase(),
+                        style: GoogleFonts.publicSans(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'KN-${driver.id.substring(0, 5).toUpperCase()} | Durum: ${driver.status.name.toUpperCase()}',
+                        style: GoogleFonts.spaceGrotesk(fontSize: 10, color: Colors.grey[400]),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // ASKIYA AL (The Gavel) Butonu
+                if (driver.status != DriverStatus.suspended)
+                  InkWell(
+                    onTap: () {
+                      _showGavelDialog(driver.id, driver.name);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _alertRed.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: _alertRed.withValues(alpha: 0.5)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.block_rounded, color: _alertRed, size: 14),
+                          const SizedBox(width: 5),
+                          Text(
+                            'ASKIYA AL',
+                            style: GoogleFonts.spaceGrotesk(
+                              color: _alertRed,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  // Kurtar (Unsuspend)
+                   InkWell(
+                    onTap: () {
+                      adminController.updateDriverStatus(driver.id, DriverStatus.approved);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
+                      ),
+                      child: Text(
+                        'YETKİ VER',
+                        style: GoogleFonts.spaceGrotesk(
+                          color: Colors.green,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           );
@@ -248,287 +467,78 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
     });
   }
 
-  // --- Diğer Tablar (Özetlenmiş Versiyon) ---
-  Widget _buildDriversTab() {
-     return Obx(() {
-       final drivers = adminController.filteredDrivers;
-       return ListView.builder(
-         padding: const EdgeInsets.all(15),
-         itemCount: drivers.length,
-         itemBuilder: (context, index) => _driverListItem(drivers[index]),
-       );
-     });
-  }
-
-  Widget _driverListItem(Driver driver) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppColors.cardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: _statusColor(driver.status).withValues(alpha: 0.2))),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              CircleAvatar(backgroundColor: _statusColor(driver.status).withValues(alpha: 0.1), child: Icon(Icons.person, color: _statusColor(driver.status))),
-              const SizedBox(width: 15),
-              Expanded(child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(driver.name, style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.bold, color: Colors.white)),
-                  Text(driver.phone, style: GoogleFonts.publicSans(fontSize: 12, color: AppColors.textSecondary)),
-                ],
-              )),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), 
-                decoration: BoxDecoration(color: _statusColor(driver.status).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)), 
-                child: Text(driver.statusText, style: TextStyle(color: _statusColor(driver.status), fontSize: 10, fontWeight: FontWeight.bold))
+  void _showGavelDialog(String driverId, String driverName) {
+    Get.dialog(
+      Dialog(
+        backgroundColor: Colors.transparent,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              padding: const EdgeInsets.all(25),
+              decoration: BoxDecoration(
+                color: _richBlack.withValues(alpha: 0.9),
+                border: Border.all(color: _alertRed.withValues(alpha: 0.5)),
               ),
-            ],
-          ),
-          if (driver.status == DriverStatus.pending) ...[
-            const SizedBox(height: 15),
-            Row(children: [
-            Expanded(child: ElevatedButton(onPressed: () => adminController.updateDriverStatus(driver.id, DriverStatus.approved), style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, foregroundColor: Colors.white), child: const Text('ONAYLA'))),
-            const SizedBox(width: 10),
-            Expanded(child: ElevatedButton(onPressed: () => adminController.updateDriverStatus(driver.id, DriverStatus.rejected), style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white), child: const Text('REDDET'))),
-            ])
-          ]
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPayoutsTab() {
-    return Obx(() {
-      final payouts = adminController.payouts;
-      if (payouts.isEmpty) return _emptyState(Icons.money_off_rounded, 'Kayıt bulunamadı');
-      
-      return ListView.builder(
-        padding: const EdgeInsets.all(15),
-        itemCount: payouts.length,
-        itemBuilder: (context, index) {
-          final payout = payouts[index];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.cardBg,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _getPayoutStatusColor(payout.status).withValues(alpha: 0.2)),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: _getPayoutStatusColor(payout.status).withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(_getPayoutStatusIcon(payout.status), color: _getPayoutStatusColor(payout.status), size: 20),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('₺${payout.amount.toStringAsFixed(2)}', style: GoogleFonts.spaceGrotesk(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                          Text(payout.description, style: GoogleFonts.publicSans(fontSize: 12, color: AppColors.textSecondary)),
-                        ],
-                      ),
-                    ),
-                    Text(DateFormat('dd.MM.yyyy').format(payout.createdAt), style: GoogleFonts.publicSans(fontSize: 10, color: AppColors.textDisabled)),
-                  ],
-                ),
-                if (payout.status == PayoutStatus.pending) ...[
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.gavel_rounded, color: _alertRed, size: 50),
                   const SizedBox(height: 15),
+                  Text(
+                    'İHRAÇ VE ASKIYA ALMA',
+                    style: GoogleFonts.spaceGrotesk(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  Text(
+                    'Kurucu yetkilerinizi kullanarak "$driverName" isimli sürücünün KONUM ağına erişimini derhal kesmek üzeresiniz. Bu işlem yasal ihlal ve şikayetlerde kullanılır.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.publicSans(color: Colors.grey[400], fontSize: 13, height: 1.5),
+                  ),
+                  const SizedBox(height: 25),
                   Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => adminController.updatePayoutStatus(payout.id, PayoutStatus.transferring),
-                          style: OutlinedButton.styleFrom(foregroundColor: AppColors.info, side: BorderSide(color: AppColors.info)),
-                          child: const Text('AKTARIYOR'),
+                        child: TextButton(
+                          onPressed: () => Get.back(),
+                          child: const Text('İPTAL', style: TextStyle(color: Colors.white)),
                         ),
                       ),
-                      const SizedBox(width: 10),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () => adminController.updatePayoutStatus(payout.id, PayoutStatus.completed),
-                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, foregroundColor: Colors.white),
-                          child: const Text('TAMAMLA'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _alertRed,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: () {
+                            adminController.updateDriverStatus(driverId, DriverStatus.suspended);
+                            Get.back();
+                            Get.snackbar(
+                              'OTORİTE KULLANILDI',
+                              'Sürücü $driverName sistemden başarıyla atıldı.',
+                              backgroundColor: _monsieurGold,
+                              colorText: _richBlack,
+                              snackPosition: SnackPosition.BOTTOM,
+                            );
+                          },
+                          child: Text('MÜDAHALE ET', style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.bold)),
                         ),
                       ),
                     ],
                   ),
                 ],
-              ],
+              ),
             ),
-          );
-        },
-      );
-    });
-  }
-
-  Widget _buildRidesTab() {
-    return Obx(() {
-      final rides = adminController.rides;
-      if (rides.isEmpty) return _emptyState(Icons.route_rounded, 'Yolculuk bulunamadı');
-
-      return ListView.builder(
-        padding: const EdgeInsets.all(15),
-        itemCount: rides.length,
-        itemBuilder: (context, index) {
-          final ride = rides[index];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.cardBg,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.divider),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(DateFormat('dd.MM HH:mm').format(ride.createdAt), style: GoogleFonts.publicSans(fontSize: 11, color: AppColors.textDisabled)),
-                    _statusBadge(ride.statusText, _getRideStatusColor(ride.status)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _locationRow(Icons.my_location, Colors.green, ride.pickupAddress),
-                const SizedBox(height: 8),
-                _locationRow(Icons.location_on, AppColors.primary, ride.destAddress),
-                const SizedBox(height: 15),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(ride.passengerId.substring(0, 8), style: GoogleFonts.publicSans(fontSize: 11, color: AppColors.textSecondary)),
-                    Text('₺${ride.grossTotal.toStringAsFixed(0)}', style: GoogleFonts.spaceGrotesk(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                  ],
-                ),
-              ],
-            ),
-          );
-        },
-      );
-    });
-  }
-
-  Widget _buildPenaltiesTab() {
-    return Obx(() {
-      final penalties = adminController.penalties;
-      if (penalties.isEmpty) return _emptyState(Icons.article_rounded, 'Ceza raporu bulunamadı');
-
-      return ListView.builder(
-        padding: const EdgeInsets.all(15),
-        itemCount: penalties.length,
-        itemBuilder: (context, index) {
-          final penalty = penalties[index];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.cardBg,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(penalty['title'] ?? 'Ceza Raporu', style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.bold, color: Colors.white)),
-                    _statusBadge(penalty['status']?.toUpperCase() ?? 'PENDING', AppColors.warning),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(penalty['description'] ?? 'Detay yok', style: GoogleFonts.publicSans(fontSize: 12, color: AppColors.textSecondary)),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Miktar: ₺${penalty['amount']?.toString() ?? '0'}', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.error)),
-                    Text(penalty['createdAt'] != null ? DateFormat('dd.MM.yyyy').format(DateTime.parse(penalty['createdAt'])) : '', style: GoogleFonts.publicSans(fontSize: 11, color: AppColors.textDisabled)),
-                  ],
-                ),
-              ],
-            ),
-          );
-        },
-      );
-    });
-  }
-
-  Widget _emptyState(IconData icon, String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 64, color: AppColors.textDisabled),
-          const SizedBox(height: 16),
-          Text(message, style: GoogleFonts.publicSans(color: AppColors.textDisabled)),
-        ],
+          ),
+        ),
       ),
     );
-  }
-
-  Widget _locationRow(IconData icon, Color color, String address) {
-    return Row(
-      children: [
-        Icon(icon, color: color, size: 14),
-        const SizedBox(width: 8),
-        Expanded(child: Text(address, style: GoogleFonts.publicSans(fontSize: 12, color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis)),
-      ],
-    );
-  }
-
-  Widget _statusBadge(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-      child: Text(label, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.bold)),
-    );
-  }
-
-  Color _getPayoutStatusColor(PayoutStatus s) {
-    switch (s) {
-      case PayoutStatus.completed: return AppColors.success;
-      case PayoutStatus.pending: return AppColors.warning;
-      case PayoutStatus.transferring: return AppColors.info;
-      case PayoutStatus.rejected: return AppColors.error;
-    }
-  }
-
-  IconData _getPayoutStatusIcon(PayoutStatus s) {
-    switch (s) {
-      case PayoutStatus.completed: return Icons.check_circle_rounded;
-      case PayoutStatus.pending: return Icons.hourglass_empty_rounded;
-      case PayoutStatus.transferring: return Icons.sync_rounded;
-      case PayoutStatus.rejected: return Icons.cancel_rounded;
-    }
-  }
-
-  Color _getRideStatusColor(RideStatus s) {
-    switch (s) {
-      case RideStatus.completed: return AppColors.success;
-      case RideStatus.inProgress: return AppColors.info;
-      case RideStatus.searching: return AppColors.warning;
-      case RideStatus.cancelled: return AppColors.error;
-      default: return AppColors.textDisabled;
-    }
-  }
-
-  Color _statusColor(DriverStatus s) {
-    switch (s) {
-      case DriverStatus.approved: return AppColors.success;
-      case DriverStatus.pending: return AppColors.warning;
-      case DriverStatus.rejected: return AppColors.error;
-      case DriverStatus.suspended: return Colors.blueGrey;
-    }
   }
 }

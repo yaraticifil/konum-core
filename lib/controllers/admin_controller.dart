@@ -175,6 +175,16 @@ class AdminController extends GetxController {
         .fold(0.0, (total, r) => total + r.grossTotal);
   }
 
+  // Legal & Tax Tracker: Vergi (KDV + Stopaj) tahmini (%20)
+  double get totalTaxDeduction {
+    return totalCommission * 0.20;
+  }
+
+  // Platformun Net Kazancı (Vergi Sonrası)
+  double get totalNetProfit {
+    return totalCommission - totalTaxDeduction;
+  }
+
   Map<String, int> get segmentDistribution {
     Map<String, int> dist = {};
     for (var ride in rides.where((r) => r.status == RideStatus.completed)) {
