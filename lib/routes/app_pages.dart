@@ -11,6 +11,7 @@ import '../bindings/auth_binding.dart';
 import '../bindings/driver_binding.dart';
 import '../bindings/admin_binding.dart';
 import '../bindings/passenger_binding.dart';
+import '../middlewares/auth_guard.dart'; // [NEW] Güvenlik duvarı eklendi
 import '../views/driver/digital_id_screen.dart';
 import '../views/driver/legal_contract_screen.dart';
 import '../views/driver/penalty_report_screen.dart';
@@ -57,11 +58,13 @@ class AppPages {
       name: '/compensation',
       page: () => const CompensationScreen(),
       binding: AdminBinding(),
+      middlewares: [AuthGuard()],
     ),
     GetPage(
       name: '/admin-audit',
       page: () => const AdminAuditScreen(),
       binding: AdminBinding(),
+      middlewares: [AuthGuard()],
     ),
     GetPage(
       name: '/role-selection',
@@ -92,6 +95,7 @@ class AppPages {
       name: '/dashboard',
       page: () => const DashboardScreen(),
       binding: DriverBinding(),
+      middlewares: [AuthGuard()],
     ),
     GetPage(
       name: '/admin-login',
@@ -102,6 +106,7 @@ class AppPages {
       name: '/admin-dashboard',
       page: () => const AdminDashboardScreen(),
       binding: AdminBinding(),
+      middlewares: [AuthGuard()],
     ),
     GetPage(
       name: '/digital-id',
@@ -123,6 +128,7 @@ class AppPages {
       name: '/passenger-home',
       page: () => const PassengerHomeScreen(),
       binding: PassengerBinding(),
+      middlewares: [AuthGuard()],
     ),
     GetPage(
       name: '/ride-history',

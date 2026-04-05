@@ -24,33 +24,11 @@ class _LoginScreenState extends State<LoginScreen> {
   static const Color _monsieurGold = Color(0xFFD4AF37); // Classic Gold
   static const Color _bronzeAccent = Color(0xFFCD7F32);
 
-  bool _isFounderDetected = false;
-
-  @override
-  void initState() {
-    super.initState();
-    emailController.addListener(_detectFounder);
-  }
-
   @override
   void dispose() {
-    emailController.removeListener(_detectFounder);
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
-  }
-
-  void _detectFounder() {
-    final email = emailController.text.trim();
-    if (email == 'gumussalimm@gmail.com') {
-      if (!_isFounderDetected) {
-        setState(() => _isFounderDetected = true);
-      }
-    } else {
-      if (_isFounderDetected) {
-        setState(() => _isFounderDetected = false);
-      }
-    }
   }
 
   void _login() {
@@ -200,16 +178,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   
                   const SizedBox(height: 10),
                   
-                  // Founder Access Button (Visible only when founder email is typed)
-                  AnimatedOpacity(
-                    duration: const Duration(milliseconds: 500),
-                    opacity: _isFounderDetected ? 1.0 : 0.0,
-                    child: Visibility(
-                      visible: _isFounderDetected,
-                      child: _buildFounderButton(),
-                    ),
-                  ),
-                  
                   const SizedBox(height: 25),
                   
                   // Kayıt Ol Yönlendirmesi
@@ -268,48 +236,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildFounderButton() {
-    return Container(
-      height: 55,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: Colors.white.withValues(alpha: 0.05),
-        border: Border.all(color: _monsieurGold.withValues(alpha: 0.5), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: _monsieurGold.withValues(alpha: 0.1),
-            blurRadius: 10,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: authController.isLoading.value ? null : _login,
-          borderRadius: BorderRadius.circular(12),
-          child: Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.vpn_key_rounded, color: _monsieurGold, size: 20),
-                const SizedBox(width: 15),
-                Text(
-                  'KURUCU ERİŞİMİ',
-                  style: GoogleFonts.spaceGrotesk(
-                    color: _monsieurGold,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 16,
-                    letterSpacing: 4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildAristocratLogo() {
     return Container(
