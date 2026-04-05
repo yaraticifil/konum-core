@@ -5,11 +5,11 @@ import '../controllers/auth_controller.dart';
 class AuthGuard extends GetMiddleware {
   // Rota izinleri matrisi
   final Map<String, List<String>> _routePermissions = {
-    '/admin-dashboard': ['admin', 'founder'],
+    '/admin-dashboard': ['admin'],
     '/dashboard': ['driver'], // Driver Home
     '/trip-management': ['driver'],
     '/passenger-home': ['passenger'],
-    '/ride-history': ['passenger', 'admin', 'founder'],
+    '/ride-history': ['passenger', 'admin'],
   };
 
   @override
@@ -49,7 +49,6 @@ class AuthGuard extends GetMiddleware {
         // Yetkisiz erişim denendi! Herkesi ait olduğu merkeze zorla geri at.
         switch (role) {
           case 'admin':
-          case 'founder':
             return const RouteSettings(name: '/admin-dashboard');
           case 'driver':
             return const RouteSettings(name: '/dashboard');

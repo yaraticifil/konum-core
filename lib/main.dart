@@ -18,7 +18,7 @@ void main() async {
     Get.put(BrandManager());
     Get.put(AuthController());
     
-    runApp(const DriverApp());
+    runApp(const KonumApp());
   } catch (e) {
     debugPrint("Initialization Error: $e");
     runApp(ErrorApp(error: e.toString()));
@@ -54,8 +54,8 @@ class ErrorApp extends StatelessWidget {
   }
 }
 
-class DriverApp extends StatelessWidget {
-  const DriverApp({super.key});
+class KonumApp extends StatelessWidget {
+  const KonumApp({super.key});
 
   @override
   Widget build(BuildContext context) {

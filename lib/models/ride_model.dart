@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/ride_service.dart';
+import '../utils/date_time_serializer.dart';
 
 enum RideStatus {
   searching,
@@ -117,19 +118,13 @@ class Ride {
       driverNet: (data['driverNet'] ?? 0).toDouble(),
       marketRate: (data['marketRate'] ?? 1.0).toDouble(),
       paymentMethod: data['paymentMethod'] ?? '',
-      createdAt: _parseDate(data['createdAt']),
-      scheduledPickupTime: data['scheduledPickupTime'] != null ? _parseDate(data['scheduledPickupTime']) : null,
-      startedAt: data['startedAt'] != null ? _parseDate(data['startedAt']) : null,
-      completedAt: data['completedAt'] != null ? _parseDate(data['completedAt']) : null,
+      createdAt: DateTimeSerializer.fromFirestore(data['createdAt']),
+      scheduledPickupTime: DateTimeSerializer.fromFirestoreNullable(data['scheduledPickupTime']),
+      startedAt: DateTimeSerializer.fromFirestoreNullable(data['startedAt']),
+      completedAt: DateTimeSerializer.fromFirestoreNullable(data['completedAt']),
       legalHash: data['legalHash'] ?? '',
       invoiceUrl: data['invoiceUrl'] ?? '',
     );
-  }
-
-  static DateTime _parseDate(dynamic value) {
-    if (value is Timestamp) return value.toDate();
-    if (value is String) return DateTime.parse(value);
-    return DateTime.now();
   }
 
   static RideStatus _parseStatus(String? status) {
@@ -199,9 +194,9 @@ class Ride {
       'invoiceUrl': invoiceUrl,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
-      'scheduledPickupTime': scheduledPickupTime != null ? Timestamp.fromDate(scheduledPickupTime!) : null,
-      'startedAt': startedAt != null ? Timestamp.fromDate(startedAt!) : null,
-      'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
+      'scheduledPickupTime': scheduledPickupTime != null ? DateTimeSerializer.toTimestamp(scheduledPickupTime!) : null,
+      'startedAt': startedAt != null ? DateTimeSerializer.toTimestamp(startedAt!) : null,
+      'completedAt': completedAt != null ? DateTimeSerializer.toTimestamp(completedAt!) : null,
     };
   }
 

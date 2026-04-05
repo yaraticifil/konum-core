@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/ride_model.dart';
 import '../services/ride_service.dart';
+import '../services/app_notifier.dart';
 
 class PassengerController extends GetxController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -34,7 +35,7 @@ class PassengerController extends GetxController {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        Get.snackbar("Hata", "Konum servisleri kapalı. Lütfen açın.");
+        AppNotifier.snackbar("Hata", "Konum servisleri kapalı. Lütfen açın.");
         return null;
       }
 
@@ -42,13 +43,13 @@ class PassengerController extends GetxController {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          Get.snackbar("Hata", "Konum izni reddedildi.");
+          AppNotifier.snackbar("Hata", "Konum izni reddedildi.");
           return null;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        Get.snackbar("Hata", "Konum izni kalıcı olarak reddedildi. Ayarlardan açın.");
+        AppNotifier.snackbar("Hata", "Konum izni kalıcı olarak reddedildi. Ayarlardan açın.");
         return null;
       }
 
@@ -137,7 +138,7 @@ class PassengerController extends GetxController {
       );
 
       if (driverId == null) {
-        Get.snackbar(
+        AppNotifier.snackbar(
           "Sürücü Bulunamadı",
           "Yakınızda müsait sürücü yok. Lütfen tekrar deneyin.",
           duration: const Duration(seconds: 5),
@@ -148,7 +149,7 @@ class PassengerController extends GetxController {
       }
     } catch (e) {
       debugPrint("Yolculuk talebi hatası: $e");
-      Get.snackbar("Hata", "Yolculuk talebi oluşturulamadı.");
+      AppNotifier.snackbar("Hata", "Yolculuk talebi oluşturulamadı.");
     } finally {
       isLoading.value = false;
     }
@@ -182,7 +183,7 @@ class PassengerController extends GetxController {
       });
       currentRide.value = null;
       _rideSubscription?.cancel();
-      Get.snackbar("İptal Edildi", "Yolculuk talebi iptal edildi.");
+      AppNotifier.snackbar("İptal Edildi", "Yolculuk talebi iptal edildi.");
     } catch (e) {
       debugPrint("İptal hatası: $e");
     }

@@ -1,8 +1,33 @@
 # KONUM Core Depo İncelemesi (5 Nisan 2026)
 
+## 0) Tekrar Kontrol Notu (5 Nisan 2026 - İkinci Geçiş)
+
+Bu ikinci kontrolde önceki bulgular yeniden doğrulandı ve güncel durum aşağıdaki gibi revize edildi:
+
+- ✅ **Android paket kimliği tutarsızlığı düzeltilmiş görünüyor.**
+  - `namespace`, `applicationId` ve `AndroidManifest` paket adı `com.konum.app` olarak tutarlı.
+- ⚠️ **Test dosyasında paket importu kırık durumdaydı** (eski paket adı), bu nedenle test altyapısı halen kırılgan.
+- ⚠️ **e-posta bazlı admin sabiti ile sabit süper yetki ataması** sürüyor; RBAC tarafında tek noktadan yetkilendirme önerisi geçerliliğini koruyor.
+- ⚠️ **Hata yönetimi ve gözlemlenebilirlik** hâlâ büyük oranda `Get.snackbar + debugPrint` düzeyinde.
+- ⚠️ **Timestamp standardizasyonu** büyük ölçüde iyi olsa da bazı yerlerde string zaman formatı kullanımına dikkat edilmeli.
+
+### Tekrar Kontrol Sonrası Net Eleştiri
+
+1. Mimari yön doğru: rol bazlı ayrım korunmuş, ancak authorization modeli büyümeye karşı hâlâ kırılgan.
+2. Operasyonel akışlar iyi kapsamlanmış, fakat hata takibi/telemetri üretim ölçeğinde yetersiz.
+3. Kod tabanı canlı ürün hissi veriyor; buna rağmen test güveni düşük kaldığı için regressions riski yüksek.
+
+### Tekrar Kontrol Sonrası Kısa Öneri Paketi
+
+1. **RBAC sertleştirme:** e-posta bazlı admin sabiti kuralını acil olarak claim + rule tabanlı modele taşıyın.
+2. **Test kapısı:** CI’da minimum `flutter analyze` + `flutter test` zorunlu olsun.
+3. **Error logging standardı:** kritik akışlarda merkezi log servisi + severity standardı ekleyin.
+4. **Tarih alanı standardı:** tüm domainlerde `Timestamp` + tek biçimlenmiş serializer/deserializer kullanın.
+5. **Yolculuk durum geçişleri için unit test:** özellikle acceptance/start/complete/cancel state akışına hedefli test yazın.
+
 ## 1) Genel Mimari Özeti
 
-- Proje bir **Flutter + GetX** mobil uygulaması ve üç temel rol etrafında kurgulanmış: `driver`, `passenger`, `admin` (ve e-posta bazlı `founder`).
+- Proje bir **Flutter + GetX** mobil uygulaması ve üç temel rol etrafında kurgulanmış: `driver`, `passenger`, `admin` (ve e-posta bazlı e-posta bazlı süper admin).
 - Giriş noktası `lib/main.dart` içinde Firebase init + global controller kayıtları ile başlıyor.
 - Rotalar `lib/routes/app_pages.dart` üzerinde merkezi tanımlı; ekranlar rol bazlı organize edilmiş.
 - Veri katmanı doğrudan Firebase Auth + Firestore + Storage üzerinden controller/service içinde yönetiliyor.
@@ -28,7 +53,7 @@
 
 ### B) Kimlik/Rol Güvenliği
 
-- `founder` rolü tek e-posta sabiti (`founderEmail`) üzerinden atanıyor. Bu yaklaşım operasyonel ama ölçeklenebilir RBAC için kırılgan.
+- e-posta bazlı süper admin rolü tek e-posta sabiti (e-posta bazlı admin sabiti) üzerinden atanıyor. Bu yaklaşım operasyonel ama ölçeklenebilir RBAC için kırılgan.
 - Admin kontrolü `admins` koleksiyonuna dayanıyor; iyi bir başlangıç olsa da Firestore security rules tarafı görünmüyor.
 
 ### C) Android Paket Kimliği Tutarsızlığı
@@ -40,8 +65,8 @@
 
 ### D) Test Altyapısı Zayıf ve Muhtemelen Kırık
 
-- Tek widget testi var ve package import `driver_app` olarak geçiyor; `pubspec.yaml` paket adı `konum_app`.
-- Testte aranan metin (`Ortak Yol`) güncel UI ile uyumlu görünmüyor.
+- Tek widget testi var ve package import geçmişte güncel adla uyumsuzdu; `pubspec.yaml` paket adı `konum_app`.
+- Testte aranan metin (eski marka metni) güncel UI ile uyumlu görünmüyor.
 - İş mantığı (fare hesaplama, rol/redirect, ride state geçişleri) için unit test yok.
 
 ### E) Controller Katmanında Yoğun Sorumluluk

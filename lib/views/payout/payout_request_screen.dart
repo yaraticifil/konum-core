@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../controllers/driver_controller.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
+import '../../services/app_notifier.dart';
 
 class PayoutRequestScreen extends StatefulWidget {
   const PayoutRequestScreen({super.key});
@@ -28,18 +29,18 @@ class _PayoutRequestScreenState extends State<PayoutRequestScreen> {
     final description = descriptionController.text.trim();
 
     if (amountText.isEmpty) {
-      Get.snackbar('Uyarı', 'Lütfen bir miktar giriniz');
+      AppNotifier.snackbar('Uyarı', 'Lütfen bir miktar giriniz');
       return;
     }
 
     double? amount = double.tryParse(amountText);
     if (amount == null || amount <= 0) {
-      Get.snackbar('Uyarı', 'Geçerli bir miktar giriniz');
+      AppNotifier.snackbar('Uyarı', 'Geçerli bir miktar giriniz');
       return;
     }
 
     if (description.isEmpty) {
-      Get.snackbar('Uyarı', 'Lütfen bir açıklama giriniz');
+      AppNotifier.snackbar('Uyarı', 'Lütfen bir açıklama giriniz');
       return;
     }
 

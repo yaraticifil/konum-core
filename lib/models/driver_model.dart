@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/date_time_serializer.dart';
 
 enum DriverStatus { pending, approved, rejected, suspended }
 
@@ -31,7 +32,7 @@ class Driver {
       name: data['name'] ?? '',
       phone: data['phone'] ?? '',
       status: _parseStatus(data['status']),
-      createdAt: data['createdAt'] is Timestamp ? (data['createdAt'] as Timestamp).toDate() : (data['createdAt'] != null ? DateTime.parse(data['createdAt']) : DateTime.now()),
+      createdAt: DateTimeSerializer.fromFirestore(data['createdAt']),
       iban: data['iban'] ?? '',
       walletBalance: (data['walletBalance'] ?? 0).toDouble(),
     );

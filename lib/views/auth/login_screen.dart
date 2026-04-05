@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../utils/brand_config.dart';
 import '../../controllers/auth_controller.dart';
 import '../../widgets/custom_text_field.dart';
+import '../../services/app_notifier.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -33,12 +34,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _login() {
     if (emailController.text.trim().isEmpty) {
-      Get.snackbar('Uyarı', 'Lütfen e-posta adresinizi girin');
+      AppNotifier.snackbar('Uyarı', 'Lütfen e-posta adresinizi girin');
       return;
     }
 
     if (passwordController.text.isEmpty) {
-      Get.snackbar('Uyarı', 'Lütfen şifrenizi girin');
+      AppNotifier.snackbar('Uyarı', 'Lütfen şifrenizi girin');
       return;
     }
 
@@ -155,7 +156,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: TextButton(
                       onPressed: () {
                         if (emailController.text.trim().isEmpty) {
-                          Get.snackbar('Uyarı', 'Önce e-posta adresinizi girin');
+                          AppNotifier.snackbar('Uyarı', 'Önce e-posta adresinizi girin');
                           return;
                         }
                         authController.resetPassword(emailController.text.trim());

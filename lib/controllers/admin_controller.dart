@@ -5,6 +5,7 @@ import '../models/payout_model.dart';
 import '../models/ride_model.dart';
 import '../models/hub_owner_model.dart';
 import '../services/hub_owner_service.dart';
+import '../services/app_notifier.dart';
 
 class AdminController extends GetxController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -38,7 +39,7 @@ class AdminController extends GetxController {
 
       drivers.value = snapshot.docs.map((doc) => Driver.fromFirestore(doc)).toList();
     } catch (e) {
-      Get.snackbar('Error', 'Failed to fetch drivers');
+      AppNotifier.snackbar('Error', 'Failed to fetch drivers');
     } finally {
       isLoading.value = false;
     }
@@ -54,7 +55,7 @@ class AdminController extends GetxController {
 
       payouts.value = snapshot.docs.map((doc) => Payout.fromFirestore(doc)).toList();
     } catch (e) {
-      Get.snackbar('Error', 'Failed to fetch payouts');
+      AppNotifier.snackbar('Error', 'Failed to fetch payouts');
     } finally {
       isLoading.value = false;
     }
@@ -93,10 +94,10 @@ class AdminController extends GetxController {
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      Get.snackbar('Success', 'Driver status updated successfully');
+      AppNotifier.snackbar('Success', 'Driver status updated successfully');
       fetchDrivers();
     } catch (e) {
-      Get.snackbar('Error', 'Failed to update driver status');
+      AppNotifier.snackbar('Error', 'Failed to update driver status');
     } finally {
       isLoading.value = false;
     }
@@ -117,10 +118,10 @@ class AdminController extends GetxController {
 
       await _firestore.collection('payouts').doc(payoutId).update(updateData);
 
-      Get.snackbar('Success', 'Payout status updated successfully');
+      AppNotifier.snackbar('Success', 'Payout status updated successfully');
       fetchPayouts();
     } catch (e) {
-      Get.snackbar('Error', 'Failed to update payout status');
+      AppNotifier.snackbar('Error', 'Failed to update payout status');
     } finally {
       isLoading.value = false;
     }
@@ -180,7 +181,7 @@ class AdminController extends GetxController {
 
       rides.value = snapshot.docs.map((doc) => Ride.fromFirestore(doc)).toList();
     } catch (e) {
-      Get.snackbar('Hata', 'Yolculuklar yüklenemedi');
+      AppNotifier.snackbar('Hata', 'Yolculuklar yüklenemedi');
     } finally {
       isLoading.value = false;
     }
