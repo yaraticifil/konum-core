@@ -6,8 +6,19 @@ class AuthGuard extends GetMiddleware {
   // Rota izinleri matrisi
   final Map<String, List<String>> _routePermissions = {
     '/admin-dashboard': ['admin', 'founder'],
-    '/dashboard': ['driver'], // Driver Home
+    '/admin-audit': ['admin', 'founder'],
+    '/compensation': ['admin', 'founder'],
+    '/dashboard': ['driver'],
     '/trip-management': ['driver'],
+    '/operational-status': ['driver', 'admin', 'founder'],
+    '/ai-assistant': ['driver'],
+    '/driver-kyc': ['driver'],
+    '/digital-id': ['driver'],
+    '/legal-contract': ['driver'],
+    '/report-penalty': ['driver'],
+    '/legal-defense': ['driver'],
+    '/fair-earnings': ['driver'],
+    '/ride-detail': ['driver', 'passenger', 'admin', 'founder'],
     '/passenger-home': ['passenger'],
     '/ride-history': ['passenger', 'admin', 'founder'],
   };
@@ -16,37 +27,34 @@ class AuthGuard extends GetMiddleware {
   RouteSettings? redirect(String? route) {
     if (route == null) return null;
 
-    // Herkese açık (veya auth öncesi) rotalar kontrol edilmez
-    if (route == '/login' || route == '/role-selection' || route == '/splash') {
+    // Herkese açık rotalar
+    if (route == '/login' || route == '/role-selection' || route == '/' || route == '/register' ||
+        route == '/admin-login' || route == '/waiting' || route.startsWith('/privacy') ||
+        route.startsWith('/clarification') || route.startsWith('/terms') || route.startsWith('/data-deletion')) {
       return null; 
     }
 
-    // Middleware çalışırken AuthController'ı bulamıyorsa ana kapıya at
     if (!Get.isRegistered<AuthController>()) {
       return const RouteSettings(name: '/login');
     }
 
     final auth = Get.find<AuthController>();
 
-    // Eğer giriş yapılmamışsa doğrudan giriş sayfasına at
     if (auth.user == null) {
       return const RouteSettings(name: '/login');
     }
 
-    // Rolü henüz belli değilse yüklenmesine izin ver (Role tespiti beklenmeli)
     final role = auth.userRole.value;
     if (role.isEmpty) {
       return null; 
     }
 
-    // Mevcut rota için kısıtlama var mı?
     if (_routePermissions.containsKey(route)) {
       final allowedRoles = _routePermissions[route]!;
       
       if (!allowedRoles.contains(role)) {
         debugPrint("Güvenlik İhlali: $role yetkisiyle $route rotasına erişmeye çalışıldı.");
         
-        // Yetkisiz erişim denendi! Herkesi ait olduğu merkeze zorla geri at.
         switch (role) {
           case 'admin':
           case 'founder':
@@ -59,8 +67,11 @@ class AuthGuard extends GetMiddleware {
             return const RouteSettings(name: '/login');
         }
       }
+    } else {
+       // Deny-by-default for unspecified private routes if Guard is applied
+       debugPrint("Bilinmeyen Özel Rota: $route middleware korumasında ama izin listesinde yok.");
     }
 
-    return null; // Yetki var, geçişe izin ver.
+    return null;
   }
 }

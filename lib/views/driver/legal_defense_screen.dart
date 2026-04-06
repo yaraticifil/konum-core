@@ -53,7 +53,7 @@ class LegalDefenseScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: _emergencyRed.withOpacity(0.1),
+        color: _emergencyRed.withValues(alpha: 0.1),
         border: Border.all(color: _emergencyRed, width: 2),
         borderRadius: BorderRadius.circular(15),
       ),
@@ -111,7 +111,7 @@ class LegalDefenseScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(15),
         border: Border.all(color: Colors.white10),
       ),
@@ -155,7 +155,7 @@ class LegalDefenseScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.02),
+        color: Colors.white.withValues(alpha: 0.02),
         borderRadius: BorderRadius.circular(15),
       ),
       child: Text(

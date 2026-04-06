@@ -228,9 +228,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.03),
+                color: Colors.white.withValues(alpha: 0.03),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _monsieurGold.withOpacity(0.2)),
+                border: Border.all(color: _monsieurGold.withValues(alpha: 0.2)),
               ),
               child: Row(
                 children: [
@@ -271,9 +271,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.03),
+              color: Colors.white.withValues(alpha: 0.03),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
             ),
             child: Icon(icon, color: Colors.grey[400], size: 20),
           ),
@@ -289,10 +289,10 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
         filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.03),
+            color: Colors.white.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.08)),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8))],
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 8))],
           ),
           child: Column(
             children: [
@@ -351,10 +351,10 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: _richBlack.withOpacity(0.85),
+            color: _richBlack.withValues(alpha: 0.85),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-            border: Border(top: BorderSide(color: _monsieurGold.withOpacity(0.3))),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.6), blurRadius: 30, offset: const Offset(0, -10))],
+            border: Border(top: BorderSide(color: _monsieurGold.withValues(alpha: 0.3))),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.6), blurRadius: 30, offset: const Offset(0, -10))],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -373,9 +373,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                         margin: const EdgeInsets.symmetric(horizontal: 5),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: isSelected ? _monsieurGold : Colors.white.withOpacity(0.03),
+                          color: isSelected ? _monsieurGold : Colors.white.withValues(alpha: 0.03),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: isSelected ? _monsieurGold : Colors.white.withOpacity(0.05)),
+                          border: Border.all(color: isSelected ? _monsieurGold : Colors.white.withValues(alpha: 0.05)),
                         ),
                         child: Column(
                           children: [
@@ -444,10 +444,10 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
           child: Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: _richBlack.withOpacity(0.85),
+              color: _richBlack.withValues(alpha: 0.85),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-              border: Border(top: BorderSide(color: _statusColor(ride.status).withOpacity(0.5))),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.6), blurRadius: 30, offset: const Offset(0, -10))],
+              border: Border(top: BorderSide(color: _statusColor(ride.status).withValues(alpha: 0.5))),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.6), blurRadius: 30, offset: const Offset(0, -10))],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -457,9 +457,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   decoration: BoxDecoration(
-                    color: _statusColor(ride.status).withOpacity(0.1),
+                    color: _statusColor(ride.status).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: _statusColor(ride.status).withOpacity(0.3)),
+                    border: Border.all(color: _statusColor(ride.status).withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -480,9 +480,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                       Container(
                         width: 54, height: 54,
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
+                          color: AppColors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
                         ),
                         child: Icon(Icons.person_rounded, color: AppColors.primary, size: 30),
                       ),
@@ -532,9 +532,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Icon(icon, color: color, size: 24),
       ),

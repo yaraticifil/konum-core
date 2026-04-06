@@ -44,16 +44,19 @@ class AppPages {
       name: '/operational-status',
       page: () => const OperationalStatusScreen(),
       binding: DriverBinding(),
+      middlewares: [AuthGuard()],
     ),
     GetPage(
       name: '/ai-assistant',
       page: () => const AiAssistantScreen(),
       binding: DriverBinding(),
+      middlewares: [AuthGuard()],
     ),
     GetPage(
       name: '/trip-management',
       page: () => const TripManagementScreen(),
       binding: DriverBinding(),
+      middlewares: [AuthGuard()],
     ),
     GetPage(
       name: '/compensation',
@@ -76,6 +79,7 @@ class AppPages {
       name: '/driver-kyc',
       page: () => const DriverKycScreen(),
       binding: DriverBinding(),
+      middlewares: [AuthGuard()],
     ),
     GetPage(
       name: '/register',
@@ -113,21 +117,25 @@ class AppPages {
       name: '/digital-id',
       page: () => const DigitalIdScreen(),
       binding: DriverBinding(),
+      middlewares: [AuthGuard()],
     ),
     GetPage(
       name: '/legal-contract',
       page: () => const LegalContractScreen(),
       binding: DriverBinding(),
+      middlewares: [AuthGuard()],
     ),
     GetPage(
       name: '/report-penalty',
       page: () => const PenaltyReportScreen(),
       binding: DriverBinding(),
+      middlewares: [AuthGuard()],
     ),
     GetPage(
       name: '/legal-defense',
       page: () => const LegalDefenseScreen(),
       binding: DriverBinding(),
+      middlewares: [AuthGuard()],
     ),
     GetPage(
       name: '/passenger-home',
@@ -139,16 +147,19 @@ class AppPages {
       name: '/ride-history',
       page: () => const RideHistoryScreen(),
       binding: PassengerBinding(),
+      middlewares: [AuthGuard()],
     ),
     GetPage(
       name: '/fair-earnings',
       page: () => const FairEarningsScreen(),
       binding: DriverBinding(),
+      middlewares: [AuthGuard()],
     ),
     GetPage(
       name: '/ride-detail',
       page: () => const RideDetailScreen(),
       binding: DriverBinding(),
+      middlewares: [AuthGuard()],
     ),
     GetPage(
       name: '/privacy-policy',

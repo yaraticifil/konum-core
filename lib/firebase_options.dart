@@ -51,7 +51,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '772761045864',
     projectId: 'ortak-yol-driver',
     storageBucket: 'ortak-yol-driver.firebasestorage.app',
-    iosBundleId: 'com.ortakyol.driver',
+    iosBundleId: 'com.konum.app',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -60,7 +60,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '772761045864',
     projectId: 'ortak-yol-driver',
     storageBucket: 'ortak-yol-driver.firebasestorage.app',
-    iosBundleId: 'com.ortakyol.driver',
+    iosBundleId: 'com.konum.app',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

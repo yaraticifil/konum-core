@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    // Drivers: Sürücülerin kendi verilerine erişimi ve adminlerin tam yetkisi
+    match /drivers/{driverId} {
+      allow read: if isOwner(driverId) || request.auth.token.email == 'gumussalimm@gmail.com';
+      allow write: if isOwner(driverId) || request.auth.token.email == 'gumussalimm@gmail.com';
+    }
+
+    // Passengers: Yolcuların kendi verilerine erişimi
+    match /passengers/{passengerId} {
+      allow read: if isOwner(passengerId) || request.auth.token.email == 'gumussalimm@gmail.com';
+      allow write: if isOwner(passengerId) || request.auth.token.email == 'gumussalimm@gmail.com';
+    }
+
+    // Rides: Yolcu ve sürücünün ilgili yolculuğa erişimi
+    match /rides/{rideId} {
+      allow create: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        resource.data.passengerId == request.auth.uid ||
+        resource.data.driverId == request.auth.uid ||
+        request.auth.token.email == 'gumussalimm@gmail.com'
+      );
+      allow update: if isAuthenticated() && (
+        resource.data.passengerId == request.auth.uid ||
+        resource.data.driverId == request.auth.uid ||
+        request.auth.token.email == 'gumussalimm@gmail.com'
+      ) && !resource.data.containsKey('legalHash'); // Prevent editing once sealed
+    }
+
+    // Insurance: Sürücülerin kendi poliçelerini görmesi
+    match /insurance_policies/{policyId} {
+      allow read: if isAuthenticated() && (
+        resource.data.driverId == request.auth.uid ||
+        request.auth.token.email == 'gumussalimm@gmail.com'
+      );
+      allow create: if isAuthenticated();
+    }
+
+    // Driver Locations: Canlı takip (Yolcular yakındakileri görür, adminler hepsini)
+    match /driver_locations/{driverId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(driverId);
+    }
+  }
+}
