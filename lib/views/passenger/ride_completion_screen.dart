@@ -4,10 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import '../../models/ride_model.dart';
-import '../../services/ride_service.dart';
-import '../../legal/legal_texts.dart';
 import '../../utils/app_colors.dart';
-import '../../utils/brand_config.dart';
+import '../../services/app_notifier.dart';
 
 class RideCompletionScreen extends StatefulWidget {
   final Ride ride;
@@ -20,7 +18,6 @@ class RideCompletionScreen extends StatefulWidget {
 class _RideCompletionScreenState extends State<RideCompletionScreen> {
   static Color get _monsieurGold => AppColors.primary;
   static const Color _richBlack = Color(0xFF0A0A0A);
-  static const Color _deepAnthracite = Color(0xFF121212);
 
   String _paymentMethod = 'cash'; // Varsayılan: Nakit (Eğer yasal sınırın altındaysa)
   String _driverIban = '';
@@ -57,7 +54,7 @@ class _RideCompletionScreenState extends State<RideCompletionScreen> {
 
   void _copyToClipboard(String text, String label) {
     Clipboard.setData(ClipboardData(text: text));
-    Get.snackbar("Kopyalandı", "$label kopyalandı.", backgroundColor: Colors.black87, colorText: Colors.white);
+    AppNotifier.snackbar("Kopyalandı", "$label kopyalandı.", backgroundColor: Colors.black87, colorText: Colors.white);
   }
 
   @override
@@ -152,7 +149,7 @@ class _RideCompletionScreenState extends State<RideCompletionScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => Get.snackbar("Bilgi", "PDF E-Makbuz yakında entegre edilecek."),
+                    onPressed: () => AppNotifier.snackbar("Bilgi", "PDF E-Makbuz yakında entegre edilecek."),
                     icon: const Icon(Icons.picture_as_pdf, size: 16),
                     label: const Text('Makbuz İndir', style: TextStyle(fontSize: 12)),
                     style: OutlinedButton.styleFrom(

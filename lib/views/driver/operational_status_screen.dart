@@ -20,7 +20,6 @@ class _OperationalStatusScreenState extends State<OperationalStatusScreen> with 
   
   OperationStage _stage = OperationStage.standby;
   String _authMessage = "";
-  double _authProgress = 0.0;
   final ScrollController _scrollController = ScrollController();
   Timer? _timer;
   late StreamSubscription<DateTime> _timeStreamSubscription;
@@ -101,7 +100,6 @@ class _OperationalStatusScreenState extends State<OperationalStatusScreen> with 
   void _runOperation() async {
     setState(() {
       _stage = OperationStage.auth;
-      _authProgress = 0.0;
       _logs.clear();
     });
 
@@ -111,7 +109,6 @@ class _OperationalStatusScreenState extends State<OperationalStatusScreen> with 
       if (!mounted) return;
       setState(() {
         _authMessage = authSteps[i];
-        _authProgress = (i + 1) / authSteps.length;
       });
     }
 

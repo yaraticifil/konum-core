@@ -6,6 +6,7 @@ import '../../controllers/auth_controller.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../legal/legal_texts.dart';
+import '../../services/app_notifier.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -53,32 +54,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _register() {
     if (nameController.text.trim().isEmpty) {
-      Get.snackbar('Uyarı', 'Lütfen adınızı ve soyadınızı girin');
+      AppNotifier.snackbar('Uyarı', 'Lütfen adınızı ve soyadınızı girin');
       return;
     }
 
     if (emailController.text.trim().isEmpty || !GetUtils.isEmail(emailController.text.trim())) {
-      Get.snackbar('Uyarı', 'Geçerli bir e-posta adresi girin');
+      AppNotifier.snackbar('Uyarı', 'Geçerli bir e-posta adresi girin');
       return;
     }
 
     if (phoneController.text.trim().isEmpty) {
-      Get.snackbar('Uyarı', 'Telefon numaranızı girin');
+      AppNotifier.snackbar('Uyarı', 'Telefon numaranızı girin');
       return;
     }
 
     if (passwordController.text.length < 6) {
-      Get.snackbar('Uyarı', 'Şifre en az 6 karakter olmalıdır');
+      AppNotifier.snackbar('Uyarı', 'Şifre en az 6 karakter olmalıdır');
       return;
     }
 
     if (passwordController.text != confirmPasswordController.text) {
-      Get.snackbar('Uyarı', 'Şifreler eşleşmiyor');
+      AppNotifier.snackbar('Uyarı', 'Şifreler eşleşmiyor');
       return;
     }
 
     if (!_kvkkApproved) {
-      Get.snackbar('Uyarı', 'Lütfen KVKK ve gizlilik onayını işaretleyin.');
+      AppNotifier.snackbar('Uyarı', 'Lütfen KVKK ve gizlilik onayını işaretleyin.');
       return;
     }
 

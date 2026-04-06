@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/date_time_serializer.dart';
 
 enum DriverStatus { pending, approved, rejected, suspended }
 
@@ -31,7 +32,7 @@ class Driver {
       name: data['name'] ?? '',
       phone: data['phone'] ?? '',
       status: _parseStatus(data['status']),
-      createdAt: data['createdAt'] != null ? DateTime.parse(data['createdAt']) : DateTime.now(),
+      createdAt: DateTimeSerializer.fromFirestore(data['createdAt']),
       iban: data['iban'] ?? '',
       walletBalance: (data['walletBalance'] ?? 0).toDouble(),
     );
@@ -51,7 +52,8 @@ class Driver {
       'name': name,
       'phone': phone,
       'status': status.toString().split('.').last,
-      'createdAt': createdAt.toIso8601String(),
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
       'iban': iban,
       'walletBalance': walletBalance,
     };
@@ -65,4 +67,4 @@ class Driver {
       default: return 'Beklemede';
     }
   }
-}
+}

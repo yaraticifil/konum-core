@@ -150,7 +150,7 @@ class FareBreakdown {
 }
 
 class RideService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore; RideService({FirebaseFirestore? firestore}) : _firestore = firestore ?? FirebaseFirestore.instance;
 
   // ── SABİTLER (Adil Fiyat Politikası) ──
   static const double kmUnitPrice = 6.0;           // Km birim bedel (₺)
@@ -331,8 +331,13 @@ class RideService {
     return driverId;
   }
 
-  String generateLegalHash(String rideId, String driverId, String passengerId, String pickupTime) {
-    final data = "$rideId$driverId$passengerId${pickupTime}TBK299";
+  String generateLegalHash({
+    required String rideId,
+    required String driverId,
+    required String passengerId,
+    required DateTime pickupTime,
+  }) {
+    final data = "$rideId$driverId$passengerId${pickupTime.toIso8601String()}TBK299";
     return sha256.convert(utf8.encode(data)).toString();
   }
 

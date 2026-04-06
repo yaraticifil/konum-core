@@ -21,7 +21,6 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
   // Aristokrat Renk Paleti
   static Color get _monsieurGold => AppColors.primary;
   static const Color _richBlack = Color(0xFF0A0A0A);
-  static const Color _deepAnthracite = Color(0xFF121212);
 
   @override
   void initState() {
@@ -153,7 +152,7 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
             children: [
               _miniInfo('Mesafe', '${ride.distanceKm.toStringAsFixed(1)} km'),
               _miniInfo('Fiyat', '₺${ride.grossTotal.toStringAsFixed(0)}'),
-              if (ride.legalHash != null) _miniInfo('Mühür', ride.legalHash!.substring(0, 8) + "...")
+              if (ride.legalHash != null) _miniInfo('Mühür', "${ride.legalHash!.substring(0, 8)}...")
             ],
           ),
         ],

@@ -51,3 +51,7 @@ GoogleService-Info.plist
 # Local keystore and key properties
 android/key.properties
 android/app/*.jks
+
+.env
+.env.*
+!.env.example

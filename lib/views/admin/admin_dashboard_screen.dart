@@ -9,7 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/admin_controller.dart';
 import '../../models/driver_model.dart';
-import '../../utils/app_colors.dart';
+import '../../services/app_notifier.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -26,9 +26,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   
   // Aristokrat Renk Paleti
   static const Color _richBlack = Color(0xFF0A0A0A);
-  static const Color _deepAnthracite = Color(0xFF121212);
   static const Color _monsieurGold = Color(0xFFD4AF37);
-  static const Color _bronzeAccent = Color(0xFFCD7F32);
   static const Color _alertRed = Color(0xFFE74C3C);
 
   // Istanbul / Center Map
@@ -91,7 +89,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   void _checkAdminAccess() {
     if (authController.userRole.value != 'admin') {
-      Get.snackbar(
+      AppNotifier.snackbar(
         'KRİTİK UYARI',
         'Strateji Odasına giriş yetkiniz bulunmamaktadır.',
         backgroundColor: _alertRed,
@@ -520,7 +518,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           onPressed: () {
                             adminController.updateDriverStatus(driverId, DriverStatus.suspended);
                             Get.back();
-                            Get.snackbar(
+                            AppNotifier.snackbar(
                               'OTORİTE KULLANILDI',
                               'Sürücü $driverName sistemden başarıyla atıldı.',
                               backgroundColor: _monsieurGold,

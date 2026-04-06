@@ -3,14 +3,19 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/driver_model.dart';
 import '../models/payout_model.dart';
 import '../models/ride_model.dart';
+import '../models/hub_owner_model.dart';
+import '../services/hub_owner_service.dart';
+import '../services/app_notifier.dart';
 
 class AdminController extends GetxController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  
+  final HubOwnerService _hubOwnerService = HubOwnerService();
+
   final RxList<Driver> drivers = <Driver>[].obs;
   final RxList<Payout> payouts = <Payout>[].obs;
   final RxList<Ride> rides = <Ride>[].obs;
   final RxList<Map<String, dynamic>> penalties = <Map<String, dynamic>>[].obs;
+  final RxList<HubOwnerModel> hubOwners = <HubOwnerModel>[].obs;
   final RxBool isLoading = false.obs;
   final RxString selectedStatus = 'all'.obs;
 
@@ -21,6 +26,7 @@ class AdminController extends GetxController {
     fetchPayouts();
     fetchPenalties();
     fetchRides();
+    fetchHubOwners();
   }
 
   Future<void> fetchDrivers() async {
@@ -31,11 +37,9 @@ class AdminController extends GetxController {
           .orderBy('createdAt', descending: true)
           .get();
 
-      drivers.value = snapshot.docs
-          .map((doc) => Driver.fromFirestore(doc))
-          .toList();
+      drivers.value = snapshot.docs.map((doc) => Driver.fromFirestore(doc)).toList();
     } catch (e) {
-      Get.snackbar('Error', 'Failed to fetch drivers');
+      AppNotifier.snackbar('Error', 'Failed to fetch drivers');
     } finally {
       isLoading.value = false;
     }
@@ -49,29 +53,51 @@ class AdminController extends GetxController {
           .orderBy('createdAt', descending: true)
           .get();
 
-      payouts.value = snapshot.docs
-          .map((doc) => Payout.fromFirestore(doc))
-          .toList();
+      payouts.value = snapshot.docs.map((doc) => Payout.fromFirestore(doc)).toList();
     } catch (e) {
-      Get.snackbar('Error', 'Failed to fetch payouts');
+      AppNotifier.snackbar('Error', 'Failed to fetch payouts');
     } finally {
       isLoading.value = false;
     }
   }
 
+  Future<void> fetchHubOwners() async {
+    try {
+      final snapshot = await _firestore.collection('hub_owners').get();
+      hubOwners.value = snapshot.docs
+          .map((d) => HubOwnerModel.fromMap(d.id, d.data()))
+          .toList();
+    } catch (_) {}
+  }
+
+  Future<void> updateHubOwnerPool({
+    required String ownerId,
+    required String name,
+    required int referredDrivers,
+    required int completedRides,
+  }) async {
+    await _hubOwnerService.upsertHubOwner(
+      ownerId: ownerId,
+      name: name,
+      referredDrivers: referredDrivers,
+      completedRides: completedRides,
+    );
+    await fetchHubOwners();
+  }
+
   Future<void> updateDriverStatus(String driverId, DriverStatus status) async {
     try {
       isLoading.value = true;
-      
+
       await _firestore.collection('drivers').doc(driverId).update({
         'status': status.toString().split('.').last,
-        'updatedAt': DateTime.now().toIso8601String(),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      Get.snackbar('Success', 'Driver status updated successfully');
+      AppNotifier.snackbar('Success', 'Driver status updated successfully');
       fetchDrivers();
     } catch (e) {
-      Get.snackbar('Error', 'Failed to update driver status');
+      AppNotifier.snackbar('Error', 'Failed to update driver status');
     } finally {
       isLoading.value = false;
     }
@@ -80,22 +106,22 @@ class AdminController extends GetxController {
   Future<void> updatePayoutStatus(String payoutId, PayoutStatus status) async {
     try {
       isLoading.value = true;
-      
+
       Map<String, dynamic> updateData = {
         'status': status.toString().split('.').last,
-        'updatedAt': DateTime.now().toIso8601String(),
+        'updatedAt': FieldValue.serverTimestamp(),
       };
 
       if (status == PayoutStatus.completed) {
-        updateData['completedAt'] = DateTime.now().toIso8601String();
+        updateData['completedAt'] = FieldValue.serverTimestamp();
       }
 
       await _firestore.collection('payouts').doc(payoutId).update(updateData);
 
-      Get.snackbar('Success', 'Payout status updated successfully');
+      AppNotifier.snackbar('Success', 'Payout status updated successfully');
       fetchPayouts();
     } catch (e) {
-      Get.snackbar('Error', 'Failed to update payout status');
+      AppNotifier.snackbar('Error', 'Failed to update payout status');
     } finally {
       isLoading.value = false;
     }
@@ -103,7 +129,7 @@ class AdminController extends GetxController {
 
   List<Driver> get filteredDrivers {
     if (selectedStatus.value == 'all') return drivers;
-    
+
     return drivers.where((driver) {
       return driver.status.toString().split('.').last == selectedStatus.value;
     }).toList();
@@ -153,11 +179,9 @@ class AdminController extends GetxController {
           .limit(100)
           .get();
 
-      rides.value = snapshot.docs
-          .map((doc) => Ride.fromFirestore(doc))
-          .toList();
+      rides.value = snapshot.docs.map((doc) => Ride.fromFirestore(doc)).toList();
     } catch (e) {
-      Get.snackbar('Hata', 'Yolculuklar yüklenemedi');
+      AppNotifier.snackbar('Hata', 'Yolculuklar yüklenemedi');
     } finally {
       isLoading.value = false;
     }
@@ -176,14 +200,10 @@ class AdminController extends GetxController {
   }
 
   // Legal & Tax Tracker: Vergi (KDV + Stopaj) tahmini (%20)
-  double get totalTaxDeduction {
-    return totalCommission * 0.20;
-  }
+  double get totalTaxDeduction => totalCommission * 0.20;
 
   // Platformun Net Kazancı (Vergi Sonrası)
-  double get totalNetProfit {
-    return totalCommission - totalTaxDeduction;
-  }
+  double get totalNetProfit => totalCommission - totalTaxDeduction;
 
   Map<String, int> get segmentDistribution {
     Map<String, int> dist = {};
